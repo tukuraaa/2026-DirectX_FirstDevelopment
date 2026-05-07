@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="PESDISASTER/PESDISASTER.vcxproj" Id="25b87313-97c9-4a12-87b4-340632198263" />
+</Solution>
