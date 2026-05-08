@@ -1,4 +1,3 @@
-#include <windows.h>
 #include <cstdlib>
 
 /// <summary>
@@ -6,10 +5,6 @@
 /// </summary>
 ReloadState _currentState = ReloadState::Wait;
 
-/// <summary>
-/// 押すべきランダムなキーのコードを参照する変数
-/// </summary>
-int _targetKey = 0;
 /// <summary>
 /// 「R以外」の指定されたキーのリストを参照する変数
 /// </summary>
@@ -26,16 +21,6 @@ const int _keyPressedMask = 0x8000;
 /// キーコードを文字列に変換する際のバッファサイズを参照する変数
 /// </summary>
 const int _keyStr_Index = 2;
-
-/// <summary>
-/// ゲームの状態を表す列挙型
-/// </summary>
-enum class ReloadState
-{
-	Wait,       // ゲームプレイ中の状態
-	Play,       // リロードミニゲーム中の状態
-	Clear       // リロード完了の状態
-};
 
 /// <summary>
 /// 初期化時に乱数の種を設定しておく関数
