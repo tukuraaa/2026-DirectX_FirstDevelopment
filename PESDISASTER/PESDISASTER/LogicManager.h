@@ -1,5 +1,4 @@
 #pragma once
-#include <windows.h>
 #include <string>
 #include <vector>
 
@@ -8,57 +7,57 @@
 /// </summary>
 enum class ReloadState
 {
-    Wait,       // ゲームプレイ中の状態
-    Play,       // リロードミニゲーム中の状態
-    Clear       // リロード完了の状態
+	Wait,       // ゲームプレイ中の状態
+	Play,       // リロードミニゲーム中の状態
+	Clear       // リロード完了の状態
 };
 
 /// <summary>
 /// ロジックを管理するクラス
 /// </summary>
-class LogicManager 
+class LogicManager
 {
-/// <summary>
-/// 周りのコードからアクセスされる変数や関数を定義するセクション
-/// </summary>
+	/// <summary>
+	/// 周りのコードからアクセスされる変数や関数を定義するセクション
+	/// </summary>
 public:
-    /// <summary>
+	/// <summary>
 	/// ロジックマネージャーのコンストラクタを定義する関数
-    /// </summary>
-    LogicManager();
+	/// </summary>
+	LogicManager();
 
-    /// <summary>
+	/// <summary>
 	/// 毎フレーム呼び出される更新関数
-    /// </summary>
-    void Update();                      
+	/// </summary>
+	void Update();
 
-    /// <summary>
+	/// <summary>
 	/// 画面に表示するメイン文字のテキストを取得する関数
-    /// </summary>
-    /// <returns></returns>
-    std::wstring GetDisplayText() const;
-    /// <summary>
+	/// </summary>
+	/// <returns></returns>
+	std::wstring GetDisplayText() const;
+	/// <summary>
 	/// ランダムに選ばれたキーの文字のテキストを取得する関数
-    /// </summary>
-    /// <returns></returns>
-    std::wstring GetTargetKeyText() const;
+	/// </summary>
+	/// <returns></returns>
+	std::wstring GetTargetKeyText() const;
 
-/// <summary>
-/// 周りのコードからアクセスされない変数や関数を定義するセクション
-/// </summary>
+	/// <summary>
+	/// 周りのコードからアクセスされない変数や関数を定義するセクション
+	/// </summary>
 private:
-    /// <summary>
+	/// <summary>
 	/// リロードの状態を管理する変数
-    /// </summary>
-    ReloadState _reloadState;
+	/// </summary>
+	ReloadState _reloadState;
 
-    /// <summary>
+	/// <summary>
 	/// ターゲットとなるキーを管理する変数
-    /// </summary>
-    wchar_t _targetKey;
+	/// </summary>
+	wchar_t _targetKey;
 
-    /// <summary>
+	/// <summary>
 	/// 候補キーのリストを管理する変数
-    /// </summary>
-    std::vector<wchar_t> m_candidates;
+	/// </summary>
+	std::vector<wchar_t> _candidates;
 };

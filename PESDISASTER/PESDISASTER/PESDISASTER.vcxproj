@@ -127,7 +127,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="ReloadGameManager.cpp" />
+    <ClCompile Include="LogicManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="LogicManager.h" />
