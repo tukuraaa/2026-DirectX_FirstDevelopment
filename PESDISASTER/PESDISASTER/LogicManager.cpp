@@ -1,8 +1,12 @@
 #include "LogicManager.h"
 #include <ctime>
 
-LogicManager::LogicManager() : _reloadState(ReloadState::Wait), _targetKey(L' '), _candidates({ L'A', L'B', L'C', L'X', L'Y' }) {
-	srand((unsigned int)time(NULL));
+/// <summary>
+/// ロジックマネージャーのコンストラクタを定義する関数
+/// </summary>
+LogicManager::LogicManager() : _reloadState(ReloadState::Wait), _targetKey(L' '), _candidates({ L'A', L'B', L'C', L'X', L'Y' }) 
+{
+	srand((unsigned int)time(NULL));// 乱数のシードを初期化
 }
 
 void LogicManager::Update() {
