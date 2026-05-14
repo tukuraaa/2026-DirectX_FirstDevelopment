@@ -1,4 +1,4 @@
-#include "DxLib.h"
+﻿#include "DxLib.h"
 #include <cstdlib>
 #include <ctime>
 
@@ -73,6 +73,43 @@ int _titleButtonNaviTextPositionX_Value = 180;
 /// タイトルボタンの誘導テキストの位置Yを参照する変数
 /// </summary>
 int _titleButtonNaviTextPositionY_Value = 280;
+/// <summary>
+/// 前のフレームの左キーの状態を参照する変数
+/// </summary>
+int _prevLeftKey = 0;
+/// <summary>
+/// 前のフレームの右キーの状態を参照する変数
+/// </summary>
+int _prevRightKey = 0;
+/// <summary>
+/// ボタン入力の成功数を参照する変数
+/// </summary>
+int _inputNumber = 1;
+
+/// <summary>
+/// カメラの水平角度を参照する変数
+/// </summary>
+float _cameraAngleY = 0.0f;
+/// <summary>
+/// カメラ角度の動かす量をを参照する変数
+/// </summary>
+float _targetAngle = 90.0f;
+/// <summary>
+/// カメラ水平角度の最大値を参照する変数
+/// </summary>
+float _moveCameraAngleMaxValue = 180.0f;
+/// <summary>
+/// カメラのY座標を参照する変数
+/// </summary>
+float _cameraPositionY_Value = 10.0f;
+/// <summary>
+/// カメラのZ座標を参照する変数
+/// </summary>
+float _cameraPositionZ_Value = -50.0f;
+/// <summary>
+/// カメラ水平角度の回転速度を参照する変数
+/// </summary>
+float _moveCameraAngleSpeedValue = 5.0f;
 
 /// <summary>
 /// メインエントリーポイントを担う関数
@@ -111,6 +148,10 @@ int WINAPI WinMain(HINSTANCE _h_Instance, HINSTANCE _hPrev_Instance, LPSTR _lpst
 	{
 		ClearDrawScreen();
 
+		// 現在のキー入力状態を取得
+		int _currentLeft = CheckHitKey(KEY_INPUT_LEFT);// 左キーの状態を参照する変数を定義
+		int _currentRight = CheckHitKey(KEY_INPUT_RIGHT);// 右キーの状態を参照する変数を定義
+
 		// シーンごとの処理
 		switch (_currentScene)
 		{
@@ -129,6 +170,30 @@ int WINAPI WinMain(HINSTANCE _h_Instance, HINSTANCE _hPrev_Instance, LPSTR _lpst
 
 		case SceneState::MainStage:
 			DrawString(_reloadButtonNaviTextPositionValue, _reloadButtonNaviTextPositionValue, "Press R to Reload", GetColor(_colorMaxValue, _colorMaxValue, _colorMaxValue));
+
+			// もし左矢印キーが押された場合
+			if (_currentLeft == _inputNumber && _prevLeftKey == 0) 
+			{
+				// もし現在のカメラ角度が目標の角度より小さい場合
+				if (_cameraAngleY < _targetAngle)
+				{
+					_cameraAngleY += _moveCameraAngleSpeedValue;// 回転スピード
+				}
+			}
+
+			// もし右矢印キーが押された場合
+			if (_currentRight == _inputNumber && _prevRightKey == 0) 
+			{
+				// もし現在のカメラ角度が目標の角度より小さい場合
+				if (_cameraAngleY < _targetAngle) 
+				{
+					_cameraAngleY += _moveCameraAngleSpeedValue;// 回転スピード
+				}
+			}
+
+			// 入力状態を保存（次のフレームで比較するため）
+			_prevLeftKey = _currentLeft;// 左キーの状態を保存
+			_prevRightKey = _currentRight;// 右キーの状態を保存
 
 			// リロードミニゲームの状態に応じた処理
 			switch (_reloadState)
@@ -176,6 +241,13 @@ int WINAPI WinMain(HINSTANCE _h_Instance, HINSTANCE _hPrev_Instance, LPSTR _lpst
 
 			break;
 		}
+		
+		// カメラ設定
+		float _radianY = _cameraAngleY * DX_PI_F / _moveCameraAngleMaxValue;// 水平角度をラジアンに変換した値を参照する変数を定義
+		SetCameraPositionAndAngle(VGet(0.0f, _cameraPositionY_Value, _cameraPositionZ_Value), 0.0f, _radianY, 0.0f);// カメラの位置と角度を設定
+
+		// --- 3D描画（確認用の立方体など） ---
+		DrawBox3D(VGet(-10, -10, -10), VGet(10, 10, 10), GetColor(255, 0, 0), GetColor(255, 255, 255), TRUE);
 
 		ScreenFlip();
 	}
