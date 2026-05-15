@@ -110,6 +110,10 @@ float _cameraPositionZ_Value = -50.0f;
 /// カメラ水平角度の回転速度を参照する変数
 /// </summary>
 float _moveCameraAngleSpeedValue = 5.0f;
+/// <summary>
+/// 廃屋モデルの大きさを参照する変数
+/// </summary>
+float _houseModel_ScaleValue = 1.0f;
 
 /// <summary>
 /// メインエントリーポイントを担う関数
@@ -143,6 +147,10 @@ int WINAPI WinMain(HINSTANCE _h_Instance, HINSTANCE _hPrev_Instance, LPSTR _lpst
 
 	srand((unsigned int)time(NULL));// 乱数の種を現在の時刻で初期化
 
+	int _houseModel = MV1LoadModel("house.mv1");// 廃屋モデルを読み込みモデルハンドルを参照する変数を定義
+
+	MV1SetScale(_houseModel, VGet(_houseModel_ScaleValue, _houseModel_ScaleValue, _houseModel_ScaleValue));// モデルの大きさを調整
+
 	// メインループ（メッセージ処理とESCキーが押されるまで続く）
 	while (ProcessMessage() == 0 && CheckHitKey(KEY_INPUT_ESCAPE) == 0)
 	{
@@ -171,8 +179,12 @@ int WINAPI WinMain(HINSTANCE _h_Instance, HINSTANCE _hPrev_Instance, LPSTR _lpst
 		case SceneState::MainStage:
 			DrawString(_reloadButtonNaviTextPositionValue, _reloadButtonNaviTextPositionValue, "Press R to Reload", GetColor(_colorMaxValue, _colorMaxValue, _colorMaxValue));
 
+			// 座標(0, 0, 0)に家を描画
+			MV1SetPosition(_houseModel, VGet(0.0f, 0.0f, 0.0f));// モデルの位置を設定
+			MV1DrawModel(_houseModel);// モデルを描画
+
 			// もし左矢印キーが押された場合
-			if (_currentLeft == _inputNumber && _prevLeftKey == 0) 
+			if (_currentLeft == _inputNumber && _prevLeftKey == 0)
 			{
 				// もし現在のカメラ角度が目標の角度より小さい場合
 				if (_cameraAngleY < _targetAngle)
@@ -182,10 +194,10 @@ int WINAPI WinMain(HINSTANCE _h_Instance, HINSTANCE _hPrev_Instance, LPSTR _lpst
 			}
 
 			// もし右矢印キーが押された場合
-			if (_currentRight == _inputNumber && _prevRightKey == 0) 
+			if (_currentRight == _inputNumber && _prevRightKey == 0)
 			{
 				// もし現在のカメラ角度が目標の角度より小さい場合
-				if (_cameraAngleY < _targetAngle) 
+				if (_cameraAngleY < _targetAngle)
 				{
 					_cameraAngleY += _moveCameraAngleSpeedValue;// 回転スピード
 				}
@@ -241,13 +253,10 @@ int WINAPI WinMain(HINSTANCE _h_Instance, HINSTANCE _hPrev_Instance, LPSTR _lpst
 
 			break;
 		}
-		
+
 		// カメラ設定
 		float _radianY = _cameraAngleY * DX_PI_F / _moveCameraAngleMaxValue;// 水平角度をラジアンに変換した値を参照する変数を定義
 		SetCameraPositionAndAngle(VGet(0.0f, _cameraPositionY_Value, _cameraPositionZ_Value), 0.0f, _radianY, 0.0f);// カメラの位置と角度を設定
-
-		// --- 3D描画（確認用の立方体など） ---
-		DrawBox3D(VGet(-10, -10, -10), VGet(10, 10, 10), GetColor(255, 0, 0), GetColor(255, 255, 255), TRUE);
 
 		ScreenFlip();
 	}
