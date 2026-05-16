@@ -93,19 +93,23 @@ float _cameraAngleY = 0.0f;
 /// <summary>
 /// カメラ角度の動かす量をを参照する変数
 /// </summary>
-float _targetAngle = 90.0f;
+float _moveCameraAngle = 90.0f;
 /// <summary>
 /// カメラ水平角度の最大値を参照する変数
 /// </summary>
 float _moveCameraAngleMaxValue = 180.0f;
 /// <summary>
+/// カメラのX座標を参照する変数
+/// </summary>
+float _cameraPositionX_Value = 30.0f;
+/// <summary>
 /// カメラのY座標を参照する変数
 /// </summary>
-float _cameraPositionY_Value = 10.0f;
+float _cameraPositionY_Value = 200.0f;
 /// <summary>
 /// カメラのZ座標を参照する変数
 /// </summary>
-float _cameraPositionZ_Value = -50.0f;
+float _cameraPositionZ_Value = -130.0f;
 /// <summary>
 /// カメラ水平角度の回転速度を参照する変数
 /// </summary>
@@ -114,6 +118,30 @@ float _moveCameraAngleSpeedValue = 5.0f;
 /// 廃屋モデルの大きさを参照する変数
 /// </summary>
 float _houseModel_ScaleValue = 1.0f;
+/// <summary>
+/// カメラの前景の描画を参照する変数
+/// </summary>
+float _cameraTransformForegroundValue = 1.0f;
+/// <summary>
+/// カメラの背景の描画を参照する変数
+/// </summary>
+float _cameraTransformBackValue = 20000.0f;
+/// <summary>
+/// カメラの「目標の角度」を参照する変数
+/// </summary>
+float _targetCameraAngleY = 0.0f;
+/// <summary>
+/// スカイボックスの大きさを参照する変数
+/// </summary>
+float _skyBoxScale = -100.0f;
+/// <summary>
+/// 円周率を参照する変数
+/// </summary>
+float _piValue = 3.14f;
+/// <summary>
+/// スカイボックスのZ軸回転の倍率を参照する変数
+/// </summary>
+float _skyBoxAngleZ_MagnificationValue = 1.0f;
 
 /// <summary>
 /// メインエントリーポイントを担う関数
@@ -125,13 +153,17 @@ float _houseModel_ScaleValue = 1.0f;
 /// <returns></returns>
 int WINAPI WinMain(HINSTANCE _h_Instance, HINSTANCE _hPrev_Instance, LPSTR _lpstr, int _nCmdShow)
 {
-	ChangeWindowMode(TRUE);// ウィンドウモードに変更
-
 	// もしライブラリの初期化が失敗した場合
 	if (DxLib_Init() == _errorNumber)
 	{
 		return _errorNumber;// エラー番号を返して終了
 	}
+
+	// 3D描画用のZバッファを有効化
+	SetUseZBuffer3D(TRUE);// 3D描画でZバッファを使用するように設定
+	SetWriteZBuffer3D(TRUE);// 3D描画でZバッファに書き込むように設定
+
+	SetCameraNearFar(_cameraTransformForegroundValue, _cameraTransformBackValue);// カメラの描画限界を広げる
 
 	SetDrawScreen(DX_SCREEN_BACK);// 裏画面を描画先に設定
 
@@ -147,9 +179,14 @@ int WINAPI WinMain(HINSTANCE _h_Instance, HINSTANCE _hPrev_Instance, LPSTR _lpst
 
 	srand((unsigned int)time(NULL));// 乱数の種を現在の時刻で初期化
 
-	int _houseModel = MV1LoadModel("house.mv1");// 廃屋モデルを読み込みモデルハンドルを参照する変数を定義
+	int _houseModel = MV1LoadModel("Models/HouseModel/House.mv1");// 廃屋モデルを読み込みモデルハンドルを参照する変数を定義
 
 	MV1SetScale(_houseModel, VGet(_houseModel_ScaleValue, _houseModel_ScaleValue, _houseModel_ScaleValue));// モデルの大きさを調整
+
+	int _skyboxModel = MV1LoadModel("Models/SkyboxModel/Skybox.mv1");// スカイボックス用の球体モデルをファイルから読み込む
+
+	MV1SetScale(_skyboxModel, VGet(_skyBoxScale, _skyBoxScale, _skyBoxScale));// モデルをマイナス100倍にして「超巨大化」＆「裏返し」にする
+	MV1SetRotationXYZ(_skyboxModel, VGet(0.0f, 0.0f, _piValue * _skyBoxAngleZ_MagnificationValue));// スカイボックスの向きを調整
 
 	// メインループ（メッセージ処理とESCキーが押されるまで続く）
 	while (ProcessMessage() == 0 && CheckHitKey(KEY_INPUT_ESCAPE) == 0)
@@ -159,6 +196,8 @@ int WINAPI WinMain(HINSTANCE _h_Instance, HINSTANCE _hPrev_Instance, LPSTR _lpst
 		// 現在のキー入力状態を取得
 		int _currentLeft = CheckHitKey(KEY_INPUT_LEFT);// 左キーの状態を参照する変数を定義
 		int _currentRight = CheckHitKey(KEY_INPUT_RIGHT);// 右キーの状態を参照する変数を定義
+
+		VECTOR _camPos = GetCameraPosition();// カメラの位置を取得
 
 		// シーンごとの処理
 		switch (_currentScene)
@@ -177,29 +216,56 @@ int WINAPI WinMain(HINSTANCE _h_Instance, HINSTANCE _hPrev_Instance, LPSTR _lpst
 			break;
 
 		case SceneState::MainStage:
-			DrawString(_reloadButtonNaviTextPositionValue, _reloadButtonNaviTextPositionValue, "Press R to Reload", GetColor(_colorMaxValue, _colorMaxValue, _colorMaxValue));
+			MV1SetPosition(_skyboxModel, _camPos);// カメラに追従させる
+
+			// 描画前の環境設定
+			SetWriteZBuffer3D(FALSE);// Zバッファ書き込みをOFF
+			SetUseLighting(FALSE);// 空間の光をOFF
+
+			MV1DrawModel(_skyboxModel);// 描画
+
+			// 描画後の環境復元
+			SetUseLighting(TRUE);// 空間の光をONに戻す
+			SetWriteZBuffer3D(TRUE);// Zバッファ書き込みをONに戻す
 
 			// 座標(0, 0, 0)に家を描画
 			MV1SetPosition(_houseModel, VGet(0.0f, 0.0f, 0.0f));// モデルの位置を設定
 			MV1DrawModel(_houseModel);// モデルを描画
 
-			// もし左矢印キーが押された場合
+			DrawString(_reloadButtonNaviTextPositionValue, _reloadButtonNaviTextPositionValue, "Press R to Reload", GetColor(_colorMaxValue, _colorMaxValue, _colorMaxValue));
+
+			// もし左キーを押した上で、前のフレームでは左キーが押されていなかった場合
 			if (_currentLeft == _inputNumber && _prevLeftKey == 0)
 			{
-				// もし現在のカメラ角度が目標の角度より小さい場合
-				if (_cameraAngleY < _targetAngle)
-				{
-					_cameraAngleY += _moveCameraAngleSpeedValue;// 回転スピード
-				}
+				_targetCameraAngleY -= _moveCameraAngle;// 「目標角度」をマイナス90度する
 			}
 
-			// もし右矢印キーが押された場合
+			// もし右キーを押した上で、前のフレームでは右キーが押されていなかった場合
 			if (_currentRight == _inputNumber && _prevRightKey == 0)
 			{
-				// もし現在のカメラ角度が目標の角度より小さい場合
-				if (_cameraAngleY < _targetAngle)
+				_targetCameraAngleY += _moveCameraAngle;// 「目標角度」をプラス90度する
+			}
+
+			// もし「目標角度」が現在のカメラ角度より小さい場合
+			if (_cameraAngleY < _targetCameraAngleY)
+			{
+				_cameraAngleY += _moveCameraAngleSpeedValue;// カメラ角度を「目標角度」に近づけるようにプラスする
+
+				// もしカメラ角度が「目標角度」を超えてしまった場合
+				if (_cameraAngleY > _targetCameraAngleY)
 				{
-					_cameraAngleY += _moveCameraAngleSpeedValue;// 回転スピード
+					_cameraAngleY = _targetCameraAngleY;// カメラ角度を「目標角度」に合わせる
+				}
+			}
+			// もし「目標角度」が現在のカメラ角度より大きい場合
+			else if (_cameraAngleY > _targetCameraAngleY)
+			{
+				_cameraAngleY -= _moveCameraAngleSpeedValue;// カメラ角度を「目標角度」に近づけるようにマイナスする
+
+				// もしカメラ角度が「目標角度」を超えてしまった場合
+				if (_cameraAngleY < _targetCameraAngleY)
+				{
+					_cameraAngleY = _targetCameraAngleY;// カメラ角度を「目標角度」に合わせる
 				}
 			}
 
@@ -243,10 +309,10 @@ int WINAPI WinMain(HINSTANCE _h_Instance, HINSTANCE _hPrev_Instance, LPSTR _lpst
 
 		case SceneState::Clear:
 			DrawString(_clearTextPositionX_Value, _clearTextPositionY_Value, "*** CLEAR ***", GetColor(0, _colorMaxValue, 0));
-			DrawString(_titleButtonNaviTextPositionX_Value, _titleButtonNaviTextPositionY_Value, "Press SPACE to Title", GetColor(_colorMaxValue, _colorMaxValue, _colorMaxValue));
+			DrawString(_titleButtonNaviTextPositionX_Value, _titleButtonNaviTextPositionY_Value, "Press ENTER to Title", GetColor(_colorMaxValue, _colorMaxValue, _colorMaxValue));
 
-			// もしスペースキーが押された場合
-			if (CheckHitKey(KEY_INPUT_SPACE))
+			// もしエンターキーが押された場合
+			if (CheckHitKey(KEY_INPUT_RETURN))
 			{
 				_currentScene = SceneState::Title;
 			}
@@ -256,7 +322,7 @@ int WINAPI WinMain(HINSTANCE _h_Instance, HINSTANCE _hPrev_Instance, LPSTR _lpst
 
 		// カメラ設定
 		float _radianY = _cameraAngleY * DX_PI_F / _moveCameraAngleMaxValue;// 水平角度をラジアンに変換した値を参照する変数を定義
-		SetCameraPositionAndAngle(VGet(0.0f, _cameraPositionY_Value, _cameraPositionZ_Value), 0.0f, _radianY, 0.0f);// カメラの位置と角度を設定
+		SetCameraPositionAndAngle(VGet(_cameraPositionX_Value, _cameraPositionY_Value, _cameraPositionZ_Value), 0.0f, _radianY, 0.0f);// カメラの位置と角度を設定
 
 		ScreenFlip();
 	}
