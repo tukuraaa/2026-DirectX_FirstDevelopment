@@ -265,8 +265,10 @@ int WINAPI WinMain(HINSTANCE _h_Instance, HINSTANCE _hPrev_Instance, LPSTR _lpst
 
 	int _screamSoundHandle = LoadSoundMem("Sounds/SE/MonsterScream.mp3");// 唸り声の効果音を読み込み参照する変数を定義
 
-	int _screamVolume = 200;// 唸り声のボリュームを参照する変数を定義
+	int _screamVolume = 600;// 唸り声のボリュームを参照する変数を定義
 	ChangeVolumeSoundMem(_screamVolume, _screamSoundHandle);// 唸り声をハッキリ聞こえさせるために少し大きめ（200）に設定
+
+	int _aimSpriteHandle = LoadGraph("Sprites/Icons/AimSilhouetteSprite.png");// レティクル（照準）画像を読み込み参照する変数を定義
 
 	// メインループ（メッセージ処理とESCキーが押されるまで続く）
 	while (ProcessMessage() == 0 && CheckHitKey(KEY_INPUT_ESCAPE) == 0)
@@ -284,6 +286,11 @@ int WINAPI WinMain(HINSTANCE _h_Instance, HINSTANCE _hPrev_Instance, LPSTR _lpst
 		int _surviveTime = _gameTimer / 60;// 60で割ることで「秒」に変換する変数を定義
 		int _timeFormatTransformX_Value = 10;// 時間表示の位置Xを参照する変数を定義
 		int _timeFormatTransformY_Value = 30;// 時間表示の位置Yを参照する変数を定義
+
+		// 画面中央にレティクル（照準）を描画するための変数の定義
+		int _centerX = 320;// 画面中央のX座標を参照する変数を定義
+		int _centerY = 240;// 画面中央のY座標を参照する変数を定義
+		float _exRate = 0.1f;// 拡大率を参照する変数を定義
 
 		// シーンごとの処理
 		switch (_currentScene)
@@ -401,6 +408,8 @@ int WINAPI WinMain(HINSTANCE _h_Instance, HINSTANCE _hPrev_Instance, LPSTR _lpst
 					MV1DrawModel(_enemyModel);// 描画
 				}
 			}
+
+			DrawRotaGraph(_centerX, _centerY, _exRate, 0.0f, _aimSpriteHandle, TRUE);// 画面中央にレティクル（照準）画像を描画
 
 			// もし0〜3（正面・右・後ろ・左）すべてがtrueの場合
 			if (_isEnemyAlive[0] && _isEnemyAlive[((_directionNumber - _subtractValue) - _subtractValue) - _subtractValue] && _isEnemyAlive[(_directionNumber - _subtractValue) - _subtractValue] && _isEnemyAlive[_directionNumber - _subtractValue])
