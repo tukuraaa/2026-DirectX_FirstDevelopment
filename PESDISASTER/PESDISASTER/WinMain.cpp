@@ -9,7 +9,8 @@ enum class SceneState
 {
 	Title,
 	MainStage,
-	Clear
+	Clear,
+	GameOver
 };
 /// <summary>
 /// リロードミニゲームの状態を管理する列挙型のクラス
@@ -58,21 +59,21 @@ int _randomButtonNaviTextPositionX_Value = 300;
 /// </summary>
 int _randomButtonNaviTextPositionY_Value = 240;
 /// <summary>
-/// クリアテキストの位置Xを参照する変数
+/// シーンの名前の位置Xを参照する変数
 /// </summary>
-int _clearTextPositionX_Value = 220;
+int _sceneNamePositionX_Value = 220;
 /// <summary>
-/// クリアテキストの位置Yを参照する変数
+/// シーンの名前の位置Yを参照する変数
 /// </summary>
-int _clearTextPositionY_Value = 200;
+int _sceneNamePositionY_Value = 200;
 /// <summary>
-/// タイトルボタンの誘導テキストの位置Xを参照する変数
+/// エンターキーボタンの誘導テキストの位置Xを参照する変数
 /// </summary>
-int _titleButtonNaviTextPositionX_Value = 180;
+int _enterButtonNaviTextPositionX_Value = 180;
 /// <summary>
-/// タイトルボタンの誘導テキストの位置Yを参照する変数
+/// エンターキーボタンの誘導テキストの位置Yを参照する変数
 /// </summary>
-int _titleButtonNaviTextPositionY_Value = 280;
+int _enterButtonNaviTextPositionY_Value = 280;
 /// <summary>
 /// 前のフレームの左キーの状態を参照する変数
 /// </summary>
@@ -85,6 +86,22 @@ int _prevRightKey = 0;
 /// ボタン入力の成功数を参照する変数
 /// </summary>
 int _inputNumber = 1;
+/// <summary>
+/// 割る数を参照する変数
+/// </summary>
+int _divisorValue = 2;
+/// <summary>
+/// 引く数を参照する変数
+/// </summary>
+int _subtractValue = 1;
+/// <summary>
+/// 方向の数を参照する変数
+/// </summary>
+int _directionNumber = 4;
+/// <summary>
+/// 敵のアニメーションの紐付け関係のインデックスを参照する変数
+/// </summary>
+int _enemyAnimAttachAbout_Index = -1;
 
 /// <summary>
 /// カメラの水平角度を参照する変数
@@ -142,6 +159,14 @@ float _piValue = 3.14f;
 /// スカイボックスのZ軸回転の倍率を参照する変数
 /// </summary>
 float _skyBoxAngleZ_MagnificationValue = 1.0f;
+/// <summary>
+/// 敵の回転角度の最大値を参照する変数
+/// </summary>
+float _enemyRotationRagianValueMax = 180.0f;
+/// <summary>
+/// 敵モデルの大きさを参照する変数
+/// </summary>
+float _enemyModel_ScaleValue = 0.9f;
 
 /// <summary>
 /// メインエントリーポイントを担う関数
@@ -170,6 +195,43 @@ int WINAPI WinMain(HINSTANCE _h_Instance, HINSTANCE _hPrev_Instance, LPSTR _lpst
 	// ステートの初期化
 	SceneState _currentScene = SceneState::Title;// シーンの状態を参照する変数を定義
 	ReloadState _reloadState = ReloadState::Wait;// リロードミニゲームの状態を参照する変数を定義
+
+	int _enemyModel = MV1LoadModel("Models/EnemyModel/Enemy.mv1");// 敵モデルを読み込み参照する変数を定義
+	MV1SetScale(_enemyModel, VGet(_enemyModel_ScaleValue, _enemyModel_ScaleValue, _enemyModel_ScaleValue));// モデルの大きさを調整
+
+	int _enemyAnimAttach_Index = MV1AttachAnim(_enemyModel, 0, _enemyAnimAttachAbout_Index, FALSE);// モデルに含まれているアニメーションを紐付け参照する変数を定義
+
+	float _enemyAnimTime = 0.0f;// アニメーションの現在の再生時間を管理する変数を定義
+
+	float _enemyAnimTotal_Time = MV1GetAttachAnimTotalTime(_enemyModel, _enemyAnimAttach_Index);// アニメーションの総時間（全体の長さ）を取得して保存する変数を定義
+
+	bool _isEnemyAlive[4] = { false, false, false, false };// 4方向（0:正面, 1:右, 2:後ろ, 3:左）に敵がいるかどうかを判定する配列の変数を定義
+
+	// 敵の出現管理の変数の初期化
+	int _enemySpawnTimer = 0;// 敵が出現するまでの時間を計るタイマーを参照する変数を定義
+	int _enemySpawn_Interval = 300;// 敵が出現する間隔を参照する変数を定義
+
+	float _enemyDistanceX = 100.0f; // 敵が出現する距離を参照する変数を定義
+	float _enemyDistanceY = 140.0f; // 敵が出現する高さを参照する変数を定義
+	float _enemyDistanceZ = 100.0f; // 敵が出現する距離を参照する変数を定義
+
+	// 敵の位置を管理する配列の変数を定義（4方向：0:正面, 1:右, 2:後ろ, 3:左）
+	VECTOR _enemyPositions[4] =
+	{
+		VGet(0.0f+_cameraPositionX_Value, _enemyDistanceY, _enemyDistanceZ+_cameraPositionZ_Value),// 0:正面 (Zプラス方向)
+		VGet(_enemyDistanceX+_cameraPositionX_Value, _enemyDistanceY, 0.0f+_cameraPositionZ_Value),// 1:右 (Xプラス方向)
+		VGet(0.0f+_cameraPositionX_Value,  _enemyDistanceY, -_enemyDistanceZ+_cameraPositionZ_Value),// 2:後ろ (Zマイナス方向)
+		VGet(-_enemyDistanceX+_cameraPositionX_Value, _enemyDistanceY, 0.0f+_cameraPositionZ_Value)// 3:左 (Xマイナス方向)
+	};
+
+	// 敵が常にプレイヤーを向くためのY軸回転角度を管理する配列の変数を定義（4方向：0:正面, 1:右, 2:後ろ, 3:左）
+	float _enemyRotations[4] =
+	{
+		0.0f,// 0:正面の敵は、回転なし（0度）で手前（プレイヤー側）を向く
+		(_enemyRotationRagianValueMax / _divisorValue)* _piValue / _enemyRotationRagianValueMax,// 1:右の敵は、90度回転して左を向く
+		_enemyRotationRagianValueMax* _piValue / _enemyRotationRagianValueMax,// 2:後ろの敵は、180度回転して奥を向く
+		(-_enemyRotationRagianValueMax / _divisorValue)* _piValue / _enemyRotationRagianValueMax// 3:左の敵は、-90度回転して右を向く
+	};
 
 	// 変数の初期化
 	int _targetKey = 0;// 押すべきキーコードを管理する変数を定義
@@ -211,6 +273,14 @@ int WINAPI WinMain(HINSTANCE _h_Instance, HINSTANCE _hPrev_Instance, LPSTR _lpst
 			{
 				_currentScene = SceneState::MainStage;
 				_reloadState = ReloadState::Wait;
+
+				// 4方向の敵の出現状態をリセットするループ
+				for (int i = 0; i < _directionNumber; i++)
+				{
+					_isEnemyAlive[i] = false;// 敵の出現状態をリセット
+				}
+
+				_enemySpawnTimer = 0;// タイマーをリセット
 			}
 
 			break;
@@ -233,6 +303,64 @@ int WINAPI WinMain(HINSTANCE _h_Instance, HINSTANCE _hPrev_Instance, LPSTR _lpst
 			MV1DrawModel(_houseModel);// モデルを描画
 
 			DrawString(_reloadButtonNaviTextPositionValue, _reloadButtonNaviTextPositionValue, "Press R to Reload", GetColor(_colorMaxValue, _colorMaxValue, _colorMaxValue));
+
+			_enemySpawnTimer++;// 毎フレームタイマーを増やす
+
+			// もしタイマーが敵の出現間隔以上になった場合
+			if (_enemySpawnTimer >= _enemySpawn_Interval)
+			{
+				// まだ敵がいない「空き場所」を探す
+				int _emptySpots[4];// 空き場所のインデックスを保存する配列の変数を定義
+				int _emptyCount = 0;// 空き場所の数を数える変数を定義
+
+				// 4方向をチェックするループ
+				for (int i = 0; i < _directionNumber; i++)
+				{
+					// もしその場所に敵がいない場合
+					if (_isEnemyAlive[i] == false)
+					{
+						_emptySpots[_emptyCount] = i;// 空き場所のインデックスを保存
+						_emptyCount++;// 空き場所の数を増やす
+					}
+				}
+
+				// もし空き場所がある場合
+				if (_emptyCount > 0)
+				{
+					int _spawn_Index = GetRand(_emptyCount - _subtractValue);// 0 ～ 空き数-1 の乱数を取得し参照する変数を定義
+					_isEnemyAlive[_emptySpots[_spawn_Index]] = true;// 選ばれた場所の敵を出現状態にする
+				}
+
+				_enemySpawnTimer = 0;// タイマーをリセットして次の出現に備える
+			}
+
+			_enemyAnimTime += 0.5f;// 毎フレーム再生時間を進める
+
+			// もしアニメーションが最後まで再生された場合
+			if (_enemyAnimTime >= _enemyAnimTotal_Time)
+			{
+				_enemyAnimTime -= _enemyAnimTotal_Time;// 再生時間をリセットしてループさせる
+			}
+
+			MV1SetAttachAnimTime(_enemyModel, _enemyAnimAttach_Index, _enemyAnimTime);// 現在の再生時間をモデルに反映させる
+
+			// 4方向の敵のループ
+			for (int i = 0; i < _directionNumber; i++)
+			{
+				// もし敵が出現している場合
+				if (_isEnemyAlive[i] == true)
+				{
+					MV1SetPosition(_enemyModel, _enemyPositions[i]);// 位置を設定
+					MV1SetRotationXYZ(_enemyModel, VGet(0.0f, _enemyRotations[i], 0.0f));// プレイヤーの方を向かせる
+					MV1DrawModel(_enemyModel);// 描画
+				}
+			}
+
+			// もし0〜3（正面・右・後ろ・左）すべてがtrueの場合
+			if (_isEnemyAlive[0] && _isEnemyAlive[((_directionNumber - _subtractValue) - _subtractValue) - _subtractValue] && _isEnemyAlive[(_directionNumber - _subtractValue) - _subtractValue] && _isEnemyAlive[_directionNumber - _subtractValue])
+			{
+				_currentScene = SceneState::GameOver;
+			}
 
 			// もし左キーを押した上で、前のフレームでは左キーが押されていなかった場合
 			if (_currentLeft == _inputNumber && _prevLeftKey == 0)
@@ -301,15 +429,27 @@ int WINAPI WinMain(HINSTANCE _h_Instance, HINSTANCE _hPrev_Instance, LPSTR _lpst
 				break;
 
 			case ReloadState::Finished:
-				_currentScene = SceneState::Clear;
+				_reloadState = ReloadState::Wait;
 				break;
 			}
 
 			break;
 
 		case SceneState::Clear:
-			DrawString(_clearTextPositionX_Value, _clearTextPositionY_Value, "*** CLEAR ***", GetColor(0, _colorMaxValue, 0));
-			DrawString(_titleButtonNaviTextPositionX_Value, _titleButtonNaviTextPositionY_Value, "Press ENTER to Title", GetColor(_colorMaxValue, _colorMaxValue, _colorMaxValue));
+			DrawString(_sceneNamePositionX_Value, _sceneNamePositionY_Value, "*** CLEAR ***", GetColor(0, _colorMaxValue, 0));
+			DrawString(_enterButtonNaviTextPositionX_Value, _enterButtonNaviTextPositionY_Value, "Press ENTER to Title", GetColor(_colorMaxValue, _colorMaxValue, _colorMaxValue));
+
+			// もしエンターキーが押された場合
+			if (CheckHitKey(KEY_INPUT_RETURN))
+			{
+				_currentScene = SceneState::Title;
+			}
+
+			break;
+
+		case SceneState::GameOver:
+			DrawString(_sceneNamePositionX_Value, _sceneNamePositionY_Value, "*** GAME OVER ***", GetColor(_colorMaxValue, 0, 0));
+			DrawString(_enterButtonNaviTextPositionX_Value, _enterButtonNaviTextPositionY_Value, "Press ENTER to Title", GetColor(_colorMaxValue, _colorMaxValue, _colorMaxValue));
 
 			// もしエンターキーが押された場合
 			if (CheckHitKey(KEY_INPUT_RETURN))
