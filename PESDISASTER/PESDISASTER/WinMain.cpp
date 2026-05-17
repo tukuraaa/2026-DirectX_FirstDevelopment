@@ -257,6 +257,17 @@ int WINAPI WinMain(HINSTANCE _h_Instance, HINSTANCE _hPrev_Instance, LPSTR _lpst
 	MV1SetScale(_skyboxModel, VGet(_skyBoxScale, _skyBoxScale, _skyBoxScale));// モデルをマイナス100倍にして「超巨大化」＆「裏返し」にする
 	MV1SetRotationXYZ(_skyboxModel, VGet(0.0f, 0.0f, _piValue * _skyBoxAngleZ_MagnificationValue));// スカイボックスの向きを調整
 
+	// BGMの読み込み
+	int _bgmHandleTitle = LoadSoundMem("Sounds/BGM/TitleSound.mp3");// タイトルBGMを読み込み参照する変数を定義
+	int _bgmHandleMainStage = LoadSoundMem("Sounds/BGM/MainStageSound.mp3");// メインステージBGMを読み込み参照する変数を定義
+	int _bgmHandleClear = LoadSoundMem("Sounds/BGM/ClearSound.mp3");// クリアシーンBGMを読み込み参照する変数を定義
+	int _bgmHandleGameOver = LoadSoundMem("Sounds/BGM/GameOverSound.mp3");// ゲームオーバーシーンBGMを読み込み参照する変数を定義
+
+	int _screamSoundHandle = LoadSoundMem("Sounds/SE/MonsterScream.mp3");// 唸り声の効果音を読み込み参照する変数を定義
+
+	int _screamVolume = 200;// 唸り声のボリュームを参照する変数を定義
+	ChangeVolumeSoundMem(_screamVolume, _screamSoundHandle);// 唸り声をハッキリ聞こえさせるために少し大きめ（200）に設定
+
 	// メインループ（メッセージ処理とESCキーが押されるまで続く）
 	while (ProcessMessage() == 0 && CheckHitKey(KEY_INPUT_ESCAPE) == 0)
 	{
@@ -278,6 +289,15 @@ int WINAPI WinMain(HINSTANCE _h_Instance, HINSTANCE _hPrev_Instance, LPSTR _lpst
 		switch (_currentScene)
 		{
 		case SceneState::Title:
+			StopSoundMem(_bgmHandleClear);// クリアシーンBGMを停止する
+			StopSoundMem(_bgmHandleGameOver);// ゲームオーバーシーンBGMを停止する
+
+			// もしタイトルBGMが再生されていない場合
+			if (CheckSoundMem(_bgmHandleTitle) == 0)
+			{
+				PlaySoundMem(_bgmHandleTitle, DX_PLAYTYPE_LOOP, TRUE);// タイトルBGMをループ再生する
+			}
+
 			DrawString(_titleTextPositionValue, _titleTextPositionValue, "--- PESDISASTER ---", GetColor(_colorMaxValue, 0, 0));
 			DrawString(_startButtonNaviTextPositionX_Value, _startButtonNaviTextPositionY_Value, "Press ENTER to Start", GetColor(_colorMaxValue, _colorMaxValue, _colorMaxValue));
 
@@ -299,6 +319,14 @@ int WINAPI WinMain(HINSTANCE _h_Instance, HINSTANCE _hPrev_Instance, LPSTR _lpst
 			break;
 
 		case SceneState::MainStage:
+			StopSoundMem(_bgmHandleTitle);// タイトルBGMを停止する
+
+			// もしメインステージBGMが再生されていない場合
+			if (CheckSoundMem(_bgmHandleMainStage) == 0)
+			{
+				PlaySoundMem(_bgmHandleMainStage, DX_PLAYTYPE_LOOP, TRUE);// メインステージBGMをループ再生する
+			}
+
 			MV1SetPosition(_skyboxModel, _camPos);// カメラに追従させる
 
 			// 描画前の環境設定
@@ -340,8 +368,13 @@ int WINAPI WinMain(HINSTANCE _h_Instance, HINSTANCE _hPrev_Instance, LPSTR _lpst
 				// もし空き場所がある場合
 				if (_emptyCount > 0)
 				{
-					int _spawn_Index = GetRand(_emptyCount-_subtractValue);// 0 ～ 空き数-1 の乱数を取得し参照する変数を定義
+					int _spawn_Index = GetRand(_emptyCount - _subtractValue);// 0 ～ 空き数-1 の乱数を取得し参照する変数を定義
 					_isEnemyAlive[_emptySpots[_spawn_Index]] = true;// 選ばれた場所の敵を出現状態にする
+
+					int _randomFrequency = 21000 + (rand() % 18001);// 21000から39000の乱数を生成して参照する変数を定義
+					SetFrequencySoundMem(_randomFrequency, _screamSoundHandle);// 唸り声の周波数を設定する
+
+					PlaySoundMem(_screamSoundHandle, DX_PLAYTYPE_BACK, TRUE);// 効果音を再生する
 				}
 
 				_enemySpawnTimer = 0;// タイマーをリセットして次の出現に備える
@@ -370,7 +403,7 @@ int WINAPI WinMain(HINSTANCE _h_Instance, HINSTANCE _hPrev_Instance, LPSTR _lpst
 			}
 
 			// もし0〜3（正面・右・後ろ・左）すべてがtrueの場合
-			if (_isEnemyAlive[0] && _isEnemyAlive[((_directionNumber - _subtractValue) - _subtractValue) - _subtractValue] && _isEnemyAlive[(_directionNumber - _subtractValue) - _subtractValue] && _isEnemyAlive[_directionNumber-_subtractValue])
+			if (_isEnemyAlive[0] && _isEnemyAlive[((_directionNumber - _subtractValue) - _subtractValue) - _subtractValue] && _isEnemyAlive[(_directionNumber - _subtractValue) - _subtractValue] && _isEnemyAlive[_directionNumber - _subtractValue])
 			{
 				_currentScene = SceneState::GameOver;
 			}
@@ -417,7 +450,7 @@ int WINAPI WinMain(HINSTANCE _h_Instance, HINSTANCE _hPrev_Instance, LPSTR _lpst
 			}
 			else
 			{
-_currentScene = SceneState::Clear;// タイマーが0になったらクリアシーンへ移行
+				_currentScene = SceneState::Clear;// タイマーが0になったらクリアシーンへ移行
 			}
 
 			DrawFormatString(_timeFormatTransformX_Value, _timeFormatTransformY_Value, GetColor(_colorMaxValue, _colorMaxValue, _colorMaxValue), "SURVIVE TIME: %d", _surviveTime);// 60で割ることで「秒」に変換して画面に表示します
@@ -457,7 +490,14 @@ _currentScene = SceneState::Clear;// タイマーが0になったらクリアシ
 			break;
 
 		case SceneState::Clear:
-			
+			StopSoundMem(_bgmHandleMainStage);// メインステージBGMを停止する
+
+			// もしクリアシーンBGMが再生されていない場合
+			if (CheckSoundMem(_bgmHandleClear) == 0)
+			{
+				PlaySoundMem(_bgmHandleClear, DX_PLAYTYPE_LOOP, TRUE);// クリアシーンBGMをループ再生する
+			}
+
 			// メインステージの情報をリセット
 			_gameTimer = _gameTimerMax;// タイマーをリセットしておく
 			_cameraAngleY = 0.0f;// カメラの角度を正面にリセット
@@ -475,12 +515,19 @@ _currentScene = SceneState::Clear;// タイマーが0になったらクリアシ
 			break;
 
 		case SceneState::GameOver:
+			StopSoundMem(_bgmHandleMainStage);// メインステージBGMを停止する
+
+			// もしゲームオーバーシーンBGMが再生されていない場合
+			if (CheckSoundMem(_bgmHandleGameOver) == 0)
+			{
+				PlaySoundMem(_bgmHandleGameOver, DX_PLAYTYPE_LOOP, TRUE);// ゲームオーバーシーンBGMをループ再生する
+			}
 
 			// メインステージの情報をリセット
 			_gameTimer = _gameTimerMax;// タイマーをリセットしておく
 			_cameraAngleY = 0.0f;// カメラの角度を正面にリセット
 			_targetCameraAngleY = 0.0f;// 「目標の角度」も正面にリセット
-			
+
 			DrawString(_sceneNamePositionX_Value, _sceneNamePositionY_Value, "*** GAME OVER ***", GetColor(_colorMaxValue, 0, 0));
 			DrawString(_enterButtonNaviTextPositionX_Value, _enterButtonNaviTextPositionY_Value, "Press ENTER to Title", GetColor(_colorMaxValue, _colorMaxValue, _colorMaxValue));
 
