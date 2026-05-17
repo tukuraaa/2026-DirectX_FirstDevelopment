@@ -102,6 +102,10 @@ int _directionNumber = 4;
 /// 敵のアニメーションの紐付け関係のインデックスを参照する変数
 /// </summary>
 int _enemyAnimAttachAbout_Index = -1;
+/// <summary>
+/// 前のフレームのエンターキーの状態を参照する変数
+/// </summary>
+int _prevReturnKey = 0;
 
 /// <summary>
 /// カメラの水平角度を参照する変数
@@ -218,20 +222,23 @@ int WINAPI WinMain(HINSTANCE _h_Instance, HINSTANCE _hPrev_Instance, LPSTR _lpst
 	// 敵の位置を管理する配列の変数を定義（4方向：0:正面, 1:右, 2:後ろ, 3:左）
 	VECTOR _enemyPositions[4] =
 	{
-		VGet(0.0f+_cameraPositionX_Value, _enemyDistanceY, _enemyDistanceZ+_cameraPositionZ_Value),// 0:正面 (Zプラス方向)
-		VGet(_enemyDistanceX+_cameraPositionX_Value, _enemyDistanceY, 0.0f+_cameraPositionZ_Value),// 1:右 (Xプラス方向)
-		VGet(0.0f+_cameraPositionX_Value,  _enemyDistanceY, -_enemyDistanceZ+_cameraPositionZ_Value),// 2:後ろ (Zマイナス方向)
-		VGet(-_enemyDistanceX+_cameraPositionX_Value, _enemyDistanceY, 0.0f+_cameraPositionZ_Value)// 3:左 (Xマイナス方向)
+		VGet(0.0f + _cameraPositionX_Value, _enemyDistanceY, _enemyDistanceZ + _cameraPositionZ_Value),// 0:正面 (Zプラス方向)
+		VGet(_enemyDistanceX + _cameraPositionX_Value, _enemyDistanceY, 0.0f + _cameraPositionZ_Value),// 1:右 (Xプラス方向)
+		VGet(0.0f + _cameraPositionX_Value,  _enemyDistanceY, -_enemyDistanceZ + _cameraPositionZ_Value),// 2:後ろ (Zマイナス方向)
+		VGet(-_enemyDistanceX + _cameraPositionX_Value, _enemyDistanceY, 0.0f + _cameraPositionZ_Value)// 3:左 (Xマイナス方向)
 	};
 
 	// 敵が常にプレイヤーを向くためのY軸回転角度を管理する配列の変数を定義（4方向：0:正面, 1:右, 2:後ろ, 3:左）
 	float _enemyRotations[4] =
 	{
 		0.0f,// 0:正面の敵は、回転なし（0度）で手前（プレイヤー側）を向く
-		(_enemyRotationRagianValueMax / _divisorValue)* _piValue / _enemyRotationRagianValueMax,// 1:右の敵は、90度回転して左を向く
-		_enemyRotationRagianValueMax* _piValue / _enemyRotationRagianValueMax,// 2:後ろの敵は、180度回転して奥を向く
-		(-_enemyRotationRagianValueMax / _divisorValue)* _piValue / _enemyRotationRagianValueMax// 3:左の敵は、-90度回転して右を向く
+		(_enemyRotationRagianValueMax / _divisorValue) * _piValue / _enemyRotationRagianValueMax,// 1:右の敵は、90度回転して左を向く
+		_enemyRotationRagianValueMax * _piValue / _enemyRotationRagianValueMax,// 2:後ろの敵は、180度回転して奥を向く
+		(-_enemyRotationRagianValueMax / _divisorValue) * _piValue / _enemyRotationRagianValueMax// 3:左の敵は、-90度回転して右を向く
 	};
+
+	int _gameTimer = 3600;// 制限時間を参照する変数を定義
+	int _gameTimerMax = 3600;// 制限時間の最大値を参照する変数を定義
 
 	// 変数の初期化
 	int _targetKey = 0;// 押すべきキーコードを管理する変数を定義
@@ -258,8 +265,14 @@ int WINAPI WinMain(HINSTANCE _h_Instance, HINSTANCE _hPrev_Instance, LPSTR _lpst
 		// 現在のキー入力状態を取得
 		int _currentLeft = CheckHitKey(KEY_INPUT_LEFT);// 左キーの状態を参照する変数を定義
 		int _currentRight = CheckHitKey(KEY_INPUT_RIGHT);// 右キーの状態を参照する変数を定義
+		int _currentReturn = CheckHitKey(KEY_INPUT_RETURN);// 現在のエンターキーの状態を参照する変数を定義
 
 		VECTOR _camPos = GetCameraPosition();// カメラの位置を取得
+
+		// 残り時間の画面表示に必要な変数の定義
+		int _surviveTime = _gameTimer / 60;// 60で割ることで「秒」に変換する変数を定義
+		int _timeFormatTransformX_Value = 10;// 時間表示の位置Xを参照する変数を定義
+		int _timeFormatTransformY_Value = 30;// 時間表示の位置Yを参照する変数を定義
 
 		// シーンごとの処理
 		switch (_currentScene)
@@ -268,8 +281,8 @@ int WINAPI WinMain(HINSTANCE _h_Instance, HINSTANCE _hPrev_Instance, LPSTR _lpst
 			DrawString(_titleTextPositionValue, _titleTextPositionValue, "--- PESDISASTER ---", GetColor(_colorMaxValue, 0, 0));
 			DrawString(_startButtonNaviTextPositionX_Value, _startButtonNaviTextPositionY_Value, "Press ENTER to Start", GetColor(_colorMaxValue, _colorMaxValue, _colorMaxValue));
 
-			// もしエンターキーが押された場合
-			if (CheckHitKey(KEY_INPUT_RETURN))
+			// もしエンターキーが押された上で、前のフレームではエンターキーが押されていなかった場合
+			if (_currentReturn == _inputNumber && _prevReturnKey == 0)
 			{
 				_currentScene = SceneState::MainStage;
 				_reloadState = ReloadState::Wait;
@@ -327,7 +340,7 @@ int WINAPI WinMain(HINSTANCE _h_Instance, HINSTANCE _hPrev_Instance, LPSTR _lpst
 				// もし空き場所がある場合
 				if (_emptyCount > 0)
 				{
-					int _spawn_Index = GetRand(_emptyCount - _subtractValue);// 0 ～ 空き数-1 の乱数を取得し参照する変数を定義
+					int _spawn_Index = GetRand(_emptyCount-_subtractValue);// 0 ～ 空き数-1 の乱数を取得し参照する変数を定義
 					_isEnemyAlive[_emptySpots[_spawn_Index]] = true;// 選ばれた場所の敵を出現状態にする
 				}
 
@@ -357,7 +370,7 @@ int WINAPI WinMain(HINSTANCE _h_Instance, HINSTANCE _hPrev_Instance, LPSTR _lpst
 			}
 
 			// もし0〜3（正面・右・後ろ・左）すべてがtrueの場合
-			if (_isEnemyAlive[0] && _isEnemyAlive[((_directionNumber - _subtractValue) - _subtractValue) - _subtractValue] && _isEnemyAlive[(_directionNumber - _subtractValue) - _subtractValue] && _isEnemyAlive[_directionNumber - _subtractValue])
+			if (_isEnemyAlive[0] && _isEnemyAlive[((_directionNumber - _subtractValue) - _subtractValue) - _subtractValue] && _isEnemyAlive[(_directionNumber - _subtractValue) - _subtractValue] && _isEnemyAlive[_directionNumber-_subtractValue])
 			{
 				_currentScene = SceneState::GameOver;
 			}
@@ -397,9 +410,17 @@ int WINAPI WinMain(HINSTANCE _h_Instance, HINSTANCE _hPrev_Instance, LPSTR _lpst
 				}
 			}
 
-			// 入力状態を保存（次のフレームで比較するため）
-			_prevLeftKey = _currentLeft;// 左キーの状態を保存
-			_prevRightKey = _currentRight;// 右キーの状態を保存
+			// もしタイマーが0より大きい場合
+			if (_gameTimer > 0)
+			{
+				_gameTimer--;// 毎フレーム1ずつ減らす
+			}
+			else
+			{
+_currentScene = SceneState::Clear;// タイマーが0になったらクリアシーンへ移行
+			}
+
+			DrawFormatString(_timeFormatTransformX_Value, _timeFormatTransformY_Value, GetColor(_colorMaxValue, _colorMaxValue, _colorMaxValue), "SURVIVE TIME: %d", _surviveTime);// 60で割ることで「秒」に変換して画面に表示します
 
 			// リロードミニゲームの状態に応じた処理
 			switch (_reloadState)
@@ -436,11 +457,17 @@ int WINAPI WinMain(HINSTANCE _h_Instance, HINSTANCE _hPrev_Instance, LPSTR _lpst
 			break;
 
 		case SceneState::Clear:
+			
+			// メインステージの情報をリセット
+			_gameTimer = _gameTimerMax;// タイマーをリセットしておく
+			_cameraAngleY = 0.0f;// カメラの角度を正面にリセット
+			_targetCameraAngleY = 0.0f;// 「目標の角度」も正面にリセット
+
 			DrawString(_sceneNamePositionX_Value, _sceneNamePositionY_Value, "*** CLEAR ***", GetColor(0, _colorMaxValue, 0));
 			DrawString(_enterButtonNaviTextPositionX_Value, _enterButtonNaviTextPositionY_Value, "Press ENTER to Title", GetColor(_colorMaxValue, _colorMaxValue, _colorMaxValue));
 
-			// もしエンターキーが押された場合
-			if (CheckHitKey(KEY_INPUT_RETURN))
+			// もしエンターキーが押された上で、前のフレームではエンターキーが押されていなかった場合
+			if (_currentReturn == _inputNumber && _prevReturnKey == 0)
 			{
 				_currentScene = SceneState::Title;
 			}
@@ -448,11 +475,17 @@ int WINAPI WinMain(HINSTANCE _h_Instance, HINSTANCE _hPrev_Instance, LPSTR _lpst
 			break;
 
 		case SceneState::GameOver:
+
+			// メインステージの情報をリセット
+			_gameTimer = _gameTimerMax;// タイマーをリセットしておく
+			_cameraAngleY = 0.0f;// カメラの角度を正面にリセット
+			_targetCameraAngleY = 0.0f;// 「目標の角度」も正面にリセット
+			
 			DrawString(_sceneNamePositionX_Value, _sceneNamePositionY_Value, "*** GAME OVER ***", GetColor(_colorMaxValue, 0, 0));
 			DrawString(_enterButtonNaviTextPositionX_Value, _enterButtonNaviTextPositionY_Value, "Press ENTER to Title", GetColor(_colorMaxValue, _colorMaxValue, _colorMaxValue));
 
-			// もしエンターキーが押された場合
-			if (CheckHitKey(KEY_INPUT_RETURN))
+			// もしエンターキーが押された上で、前のフレームではエンターキーが押されていなかった場合
+			if (_currentReturn == _inputNumber && _prevReturnKey == 0)
 			{
 				_currentScene = SceneState::Title;
 			}
@@ -463,6 +496,11 @@ int WINAPI WinMain(HINSTANCE _h_Instance, HINSTANCE _hPrev_Instance, LPSTR _lpst
 		// カメラ設定
 		float _radianY = _cameraAngleY * DX_PI_F / _moveCameraAngleMaxValue;// 水平角度をラジアンに変換した値を参照する変数を定義
 		SetCameraPositionAndAngle(VGet(_cameraPositionX_Value, _cameraPositionY_Value, _cameraPositionZ_Value), 0.0f, _radianY, 0.0f);// カメラの位置と角度を設定
+
+		// 入力状態を保存（次のフレームで比較するため）
+		_prevLeftKey = _currentLeft;// 左キーの状態を保存
+		_prevRightKey = _currentRight;// 右キーの状態を保存
+		_prevReturnKey = _currentReturn;// エンターキーの状態を保存
 
 		ScreenFlip();
 	}
