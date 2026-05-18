@@ -179,7 +179,7 @@ float _enemyModel_ScaleValue = 0.9f;
 /// <summary>
 /// メインエントリーポイントを担う関数
 /// </summary>
-int WINAPI WinMain(HINSTANCE _h_Instance, HINSTANCE _hPrev_Instance, LPSTR _lpstr, int _nCmdShow)
+int WINAPI WinMain(_In_ HINSTANCE _h_Instance, _In_opt_ HINSTANCE _hPrev_Instance, _In_ LPSTR _lpstr, _In_ int _nCmdShow)
 {
 	// もしライブラリの初期化が失敗した場合
 	if (DxLib_Init() == _errorNumber)
@@ -236,8 +236,8 @@ int WINAPI WinMain(HINSTANCE _h_Instance, HINSTANCE _hPrev_Instance, LPSTR _lpst
 		(-_enemyRotationRagianValueMax / _divisorValue) * _piValue / _enemyRotationRagianValueMax// 3:左
 	};
 
-	int _gameTimer = 3600;// 制限時間を参照する変数を定義
-	int _gameTimerMax = 3600;// 制限時間の最大値を参照する変数を定義
+	int _gameTimer = 3600*3;// 制限時間を参照する変数を定義
+	int _gameTimerMax = 3600*3;// 制限時間の最大値を参照する変数を定義
 
 	// 残弾数システムの追加変数
 	int _maxAmmo = 9;// マガジンの最大装弾数を参照する変数を定義
