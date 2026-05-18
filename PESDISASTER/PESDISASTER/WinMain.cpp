@@ -106,6 +106,10 @@ int _enemyAnimAttachAbout_Index = -1;
 /// 前のフレームのエンターキーの状態を参照する変数
 /// </summary>
 int _prevReturnKey = 0;
+/// <summary>
+/// 前のフレームのスペースキーの状態を参照する変数
+/// </summary>
+int _prevSpaceKey = 0;
 
 /// <summary>
 /// カメラの水平角度を参照する変数
@@ -175,11 +179,6 @@ float _enemyModel_ScaleValue = 0.9f;
 /// <summary>
 /// メインエントリーポイントを担う関数
 /// </summary>
-/// <param name="_h_Instance"></param>
-/// <param name="_hPrev_Instance"></param>
-/// <param name="_lpstr"></param>
-/// <param name="_nCmdShow"></param>
-/// <returns></returns>
 int WINAPI WinMain(HINSTANCE _h_Instance, HINSTANCE _hPrev_Instance, LPSTR _lpstr, int _nCmdShow)
 {
 	// もしライブラリの初期化が失敗した場合
@@ -189,292 +188,331 @@ int WINAPI WinMain(HINSTANCE _h_Instance, HINSTANCE _hPrev_Instance, LPSTR _lpst
 	}
 
 	// 3D描画用のZバッファを有効化
-	SetUseZBuffer3D(TRUE);// 3D描画でZバッファを使用するように設定
-	SetWriteZBuffer3D(TRUE);// 3D描画でZバッファに書き込むように設定
+	SetUseZBuffer3D(TRUE);
+	SetWriteZBuffer3D(TRUE);
 
 	SetCameraNearFar(_cameraTransformForegroundValue, _cameraTransformBackValue);// カメラの描画限界を広げる
 
 	SetDrawScreen(DX_SCREEN_BACK);// 裏画面を描画先に設定
 
 	// ステートの初期化
-	SceneState _currentScene = SceneState::Title;// シーンの状態を参照する変数を定義
-	ReloadState _reloadState = ReloadState::Wait;// リロードミニゲームの状態を参照する変数を定義
+	SceneState _currentScene = SceneState::Title;
+	ReloadState _reloadState = ReloadState::Wait;
 
 	int _enemyModel = MV1LoadModel("Models/EnemyModel/Enemy.mv1");// 敵モデルを読み込み参照する変数を定義
-	MV1SetScale(_enemyModel, VGet(_enemyModel_ScaleValue, _enemyModel_ScaleValue, _enemyModel_ScaleValue));// モデルの大きさを調整
+	MV1SetScale(_enemyModel, VGet(_enemyModel_ScaleValue, _enemyModel_ScaleValue, _enemyModel_ScaleValue));// 敵モデルの大きさを設定
 
-	int _enemyAnimAttach_Index = MV1AttachAnim(_enemyModel, 0, _enemyAnimAttachAbout_Index, FALSE);// モデルに含まれているアニメーションを紐付け参照する変数を定義
+	// 敵モデルのアニメーションを紐付ける
+	int _enemyAnimAttach_Index = MV1AttachAnim(_enemyModel, 0, _enemyAnimAttachAbout_Index, FALSE);// 敵モデルのアニメーションを紐づけ参照する変数を定義
+	float _enemyAnimTime = 0.0f;// 敵モデルのアニメーションの再生時間を管理する変数を定義
+	float _enemyAnimTotal_Time = MV1GetAttachAnimTotalTime(_enemyModel, _enemyAnimAttach_Index);// 敵モデルのアニメーションの総時間を参照する変数を定義
 
-	float _enemyAnimTime = 0.0f;// アニメーションの現在の再生時間を管理する変数を定義
-
-	float _enemyAnimTotal_Time = MV1GetAttachAnimTotalTime(_enemyModel, _enemyAnimAttach_Index);// アニメーションの総時間（全体の長さ）を取得して保存する変数を定義
-
-	bool _isEnemyAlive[4] = { false, false, false, false };// 4方向（0:正面, 1:右, 2:後ろ, 3:左）に敵がいるかどうかを判定する配列の変数を定義
+	bool _isEnemyAlive[4] = { false, false, false, false };// 4方向（0:正面, 1:右, 2:後ろ, 3:左）を管理する敵の生存状態の配列を参照する変数を定義
 
 	// 敵の出現管理の変数の初期化
-	int _enemySpawnTimer = 0;// 敵が出現するまでの時間を計るタイマーを参照する変数を定義
-	int _enemySpawn_Interval = 300;// 敵が出現する間隔を参照する変数を定義
+	int _enemySpawnTimer = 0;// 敵の出現タイマーを参照する変数を定義
+	int _enemySpawn_Interval = 300;// 敵の出現間隔を参照する変数を定義
 
-	float _enemyDistanceX = 100.0f; // 敵が出現する距離を参照する変数を定義
-	float _enemyDistanceY = 140.0f; // 敵が出現する高さを参照する変数を定義
-	float _enemyDistanceZ = 100.0f; // 敵が出現する距離を参照する変数を定義
+	// 敵の位置を決めるための変数の定義
+	float _enemyDistanceX = 100.0f;// 敵とプレイヤーの距離を参照する変数を定義
+	float _enemyDistanceY = 140.0f;// 敵の高さを参照する変数を定義
+	float _enemyDistanceZ = 100.0f;// 敵とプレイヤーの距離を参照する変数を定義
 
-	// 敵の位置を管理する配列の変数を定義（4方向：0:正面, 1:右, 2:後ろ, 3:左）
+	// 敵の位置を管理する配列（4方向：0:正面, 1:右, 2:後ろ, 3:左）
 	VECTOR _enemyPositions[4] =
 	{
-		VGet(0.0f + _cameraPositionX_Value, _enemyDistanceY, _enemyDistanceZ + _cameraPositionZ_Value),// 0:正面 (Zプラス方向)
-		VGet(_enemyDistanceX + _cameraPositionX_Value, _enemyDistanceY, 0.0f + _cameraPositionZ_Value),// 1:右 (Xプラス方向)
-		VGet(0.0f + _cameraPositionX_Value,  _enemyDistanceY, -_enemyDistanceZ + _cameraPositionZ_Value),// 2:後ろ (Zマイナス方向)
-		VGet(-_enemyDistanceX + _cameraPositionX_Value, _enemyDistanceY, 0.0f + _cameraPositionZ_Value)// 3:左 (Xマイナス方向)
+		VGet(0.0f + _cameraPositionX_Value, _enemyDistanceY, _enemyDistanceZ + _cameraPositionZ_Value),// 0:正面
+		VGet(_enemyDistanceX + _cameraPositionX_Value, _enemyDistanceY, 0.0f + _cameraPositionZ_Value),// 1:右
+		VGet(0.0f + _cameraPositionX_Value,  _enemyDistanceY, -_enemyDistanceZ + _cameraPositionZ_Value),// 2:後ろ
+		VGet(-_enemyDistanceX + _cameraPositionX_Value, _enemyDistanceY, 0.0f + _cameraPositionZ_Value)// 3:左
 	};
 
-	// 敵が常にプレイヤーを向くためのY軸回転角度を管理する配列の変数を定義（4方向：0:正面, 1:右, 2:後ろ, 3:左）
+	// 敵が常にプレイヤーを向くためのY軸回転角度（4方向）
 	float _enemyRotations[4] =
 	{
-		0.0f,// 0:正面の敵は、回転なし（0度）で手前（プレイヤー側）を向く
-		(_enemyRotationRagianValueMax / _divisorValue) * _piValue / _enemyRotationRagianValueMax,// 1:右の敵は、90度回転して左を向く
-		_enemyRotationRagianValueMax * _piValue / _enemyRotationRagianValueMax,// 2:後ろの敵は、180度回転して奥を向く
-		(-_enemyRotationRagianValueMax / _divisorValue) * _piValue / _enemyRotationRagianValueMax// 3:左の敵は、-90度回転して右を向く
+		0.0f,// 0:正面
+		(_enemyRotationRagianValueMax / _divisorValue) * _piValue / _enemyRotationRagianValueMax,// 1:右
+		_enemyRotationRagianValueMax * _piValue / _enemyRotationRagianValueMax,// 2:後ろ
+		(-_enemyRotationRagianValueMax / _divisorValue) * _piValue / _enemyRotationRagianValueMax// 3:左
 	};
 
 	int _gameTimer = 3600;// 制限時間を参照する変数を定義
 	int _gameTimerMax = 3600;// 制限時間の最大値を参照する変数を定義
 
+	// 残弾数システムの追加変数
+	int _maxAmmo = 9;// マガジンの最大装弾数を参照する変数を定義
+	int _currentAmmo = _maxAmmo;// 現在の残弾数を参照する変数を定義
+
 	// 変数の初期化
-	int _targetKey = 0;// 押すべきキーコードを管理する変数を定義
-	char _targetKeyChar = ' ';// 押すべきキーの文字を管理する変数を定義
-	int _candidateKeys[] = { KEY_INPUT_A, KEY_INPUT_B, KEY_INPUT_C, KEY_INPUT_X, KEY_INPUT_Y };// 候補となるキーコードを参照する変数の配列を定義
-	char _candidateChars[] = { 'A', 'B', 'C', 'X', 'Y' };// 候補となるキーの文字を参照する変数の配列を定義
+	int _targetKey = 0;// リロードミニゲームの正解キーを参照する変数を定義
+	char _targetKeyChar = ' ';// リロードミニゲームの正解キーの文字を参照する変数を定義
+	int _candidateKeys[] = { KEY_INPUT_A, KEY_INPUT_B, KEY_INPUT_C, KEY_INPUT_X, KEY_INPUT_Y };// リロードミニゲームの候補キーの配列を参照する変数を定義
+	char _candidateChars[] = { 'A', 'B', 'C', 'X', 'Y' };// リロードミニゲームの候補キーの文字の配列を参照する変数を定義
 
-	srand((unsigned int)time(NULL));// 乱数の種を現在の時刻で初期化
+	srand((unsigned int)time(NULL));// 乱数の種を初期化
 
-	int _houseModel = MV1LoadModel("Models/HouseModel/House.mv1");// 廃屋モデルを読み込みモデルハンドルを参照する変数を定義
+	int _houseModel = MV1LoadModel("Models/HouseModel/House.mv1");// 廃屋モデルを読み込み参照する変数を定義
+	MV1SetScale(_houseModel, VGet(_houseModel_ScaleValue, _houseModel_ScaleValue, _houseModel_ScaleValue));// 廃屋モデルの大きさを設定
 
-	MV1SetScale(_houseModel, VGet(_houseModel_ScaleValue, _houseModel_ScaleValue, _houseModel_ScaleValue));// モデルの大きさを調整
-
-	int _skyboxModel = MV1LoadModel("Models/SkyboxModel/Skybox.mv1");// スカイボックス用の球体モデルをファイルから読み込む
-
-	MV1SetScale(_skyboxModel, VGet(_skyBoxScale, _skyBoxScale, _skyBoxScale));// モデルをマイナス100倍にして「超巨大化」＆「裏返し」にする
-	MV1SetRotationXYZ(_skyboxModel, VGet(0.0f, 0.0f, _piValue * _skyBoxAngleZ_MagnificationValue));// スカイボックスの向きを調整
+	int _skyboxModel = MV1LoadModel("Models/SkyboxModel/Skybox.mv1");// スカイボックスモデルを読み込み参照する変数を定義
+	MV1SetScale(_skyboxModel, VGet(_skyBoxScale, _skyBoxScale, _skyBoxScale));// スカイボックスの大きさを設定
+	MV1SetRotationXYZ(_skyboxModel, VGet(0.0f, 0.0f, _piValue * _skyBoxAngleZ_MagnificationValue));// スカイボックスの初期回転を設定
 
 	// BGMの読み込み
-	int _bgmHandleTitle = LoadSoundMem("Sounds/BGM/TitleSound.mp3");// タイトルBGMを読み込み参照する変数を定義
-	int _bgmHandleMainStage = LoadSoundMem("Sounds/BGM/MainStageSound.mp3");// メインステージBGMを読み込み参照する変数を定義
-	int _bgmHandleClear = LoadSoundMem("Sounds/BGM/ClearSound.mp3");// クリアシーンBGMを読み込み参照する変数を定義
-	int _bgmHandleGameOver = LoadSoundMem("Sounds/BGM/GameOverSound.mp3");// ゲームオーバーシーンBGMを読み込み参照する変数を定義
+	int _bgmHandleTitle = LoadSoundMem("Sounds/BGM/TitleSound.mp3");// タイトル画面のBGMを読み込み参照する変数を定義
+	int _bgmHandleMainStage = LoadSoundMem("Sounds/BGM/MainStageSound.mp3");// メインステージのBGMを読み込み参照する変数を定義
+	int _bgmHandleClear = LoadSoundMem("Sounds/BGM/ClearSound.mp3");// クリア画面のBGMを読み込み参照する変数を定義
+	int _bgmHandleGameOver = LoadSoundMem("Sounds/BGM/GameOverSound.mp3");// ゲームオーバー画面のBGMを読み込み参照する変数を定義
 
-	int _screamSoundHandle = LoadSoundMem("Sounds/SE/MonsterScream.mp3");// 唸り声の効果音を読み込み参照する変数を定義
+	// SEの読み込み
+	int _screamSoundHandle = LoadSoundMem("Sounds/SE/MonsterScream.mp3");// 敵出現の唸り声を読み込み参照する変数を定義
+	int _shotSoundHandle = LoadSoundMem("Sounds/SE/ShootSound.mp3");// 銃の発砲音を読み込み参照する変数を定義
+	int _reloadSoundHandle = LoadSoundMem("Sounds/SE/ReloadSound.mp3");// リロード成功の音を読み込み参照する変数を定義
+	int _nonMagazineSoundHandle = LoadSoundMem("Sounds/SE/NonMagazineSound.mp3");// 弾切れの音を読み込み参照する変数を定義
+	int _reloadGameStartSoundHandle = LoadSoundMem("Sounds/SE/ReloadGameStartSound.mp3");// リロードミニゲーム開始の音を読み込み参照する変数を定義
 
-	int _screamVolume = 600;// 唸り声のボリュームを参照する変数を定義
-	ChangeVolumeSoundMem(_screamVolume, _screamSoundHandle);// 唸り声をハッキリ聞こえさせるために少し大きめ（200）に設定
+	int _screamVolume = 600;// 敵の唸り声のボリュームを参照する変数を定義
+	ChangeVolumeSoundMem(_screamVolume, _screamSoundHandle);// 敵の唸り声のボリュームを設定
 
-	int _aimSpriteHandle = LoadGraph("Sprites/Icons/AimSilhouetteSprite.png");// レティクル（照準）画像を読み込み参照する変数を定義
+	int _aimSpriteHandle = LoadGraph("Sprites/Icons/AimSilhouetteSprite.png");// 照準画像
 
-	// メインループ（メッセージ処理とESCキーが押されるまで続く）
+	// メインループ
 	while (ProcessMessage() == 0 && CheckHitKey(KEY_INPUT_ESCAPE) == 0)
 	{
 		ClearDrawScreen();
 
 		// 現在のキー入力状態を取得
-		int _currentLeft = CheckHitKey(KEY_INPUT_LEFT);// 左キーの状態を参照する変数を定義
-		int _currentRight = CheckHitKey(KEY_INPUT_RIGHT);// 右キーの状態を参照する変数を定義
-		int _currentReturn = CheckHitKey(KEY_INPUT_RETURN);// 現在のエンターキーの状態を参照する変数を定義
+		int _currentLeft = CheckHitKey(KEY_INPUT_LEFT);// 左キーの状態を取得して参照する変数を定義
+		int _currentRight = CheckHitKey(KEY_INPUT_RIGHT);// 右キーの状態を取得して参照する変数を定義
+		int _currentReturn = CheckHitKey(KEY_INPUT_RETURN);// エンターキーの状態を取得して参照する変数を定義
+		int _currentSpace = CheckHitKey(KEY_INPUT_SPACE);// スペースキーの状態を取得して参照する変数を定義
 
-		VECTOR _camPos = GetCameraPosition();// カメラの位置を取得
+		VECTOR _camPos = GetCameraPosition();// カメラの位置を取得して参照する変数を定義
 
 		// 残り時間の画面表示に必要な変数の定義
-		int _surviveTime = _gameTimer / 60;// 60で割ることで「秒」に変換する変数を定義
-		int _timeFormatTransformX_Value = 10;// 時間表示の位置Xを参照する変数を定義
-		int _timeFormatTransformY_Value = 30;// 時間表示の位置Yを参照する変数を定義
+		int _surviveTime = _gameTimer / 60;// フレーム数を秒数に変換して参照する変数を定義
+		int _timeFormatTransformX_Value = 10;// タイム表示の位置Xを参照する変数を定義
+		int _timeFormatTransformY_Value = 30;// タイム表示の位置Yを参照する変数を定義
 
 		// 画面中央にレティクル（照準）を描画するための変数の定義
-		int _centerX = 320;// 画面中央のX座標を参照する変数を定義
-		int _centerY = 240;// 画面中央のY座標を参照する変数を定義
-		float _exRate = 0.1f;// 拡大率を参照する変数を定義
+		int _centerX = 320;// 画面の幅の半分を参照する変数を定義
+		int _centerY = 240;// 画面の高さの半分を参照する変数を定義
+		float _exRate = 0.1f;// レティクルの拡大率を参照する変数を定義
 
 		// シーンごとの処理
 		switch (_currentScene)
 		{
 		case SceneState::Title:
-			StopSoundMem(_bgmHandleClear);// クリアシーンBGMを停止する
-			StopSoundMem(_bgmHandleGameOver);// ゲームオーバーシーンBGMを停止する
+			StopSoundMem(_bgmHandleClear);
+			StopSoundMem(_bgmHandleGameOver);
 
-			// もしタイトルBGMが再生されていない場合
+			// もしタイトル画面のBGMが再生されていない場合
 			if (CheckSoundMem(_bgmHandleTitle) == 0)
 			{
-				PlaySoundMem(_bgmHandleTitle, DX_PLAYTYPE_LOOP, TRUE);// タイトルBGMをループ再生する
+				PlaySoundMem(_bgmHandleTitle, DX_PLAYTYPE_LOOP, TRUE);
 			}
 
+			// タイトルテキストとエンターキーの誘導テキストを描画
 			DrawString(_titleTextPositionValue, _titleTextPositionValue, "--- PESDISASTER ---", GetColor(_colorMaxValue, 0, 0));
 			DrawString(_startButtonNaviTextPositionX_Value, _startButtonNaviTextPositionY_Value, "Press ENTER to Start", GetColor(_colorMaxValue, _colorMaxValue, _colorMaxValue));
 
-			// もしエンターキーが押された上で、前のフレームではエンターキーが押されていなかった場合
+			// もしエンターキーが新しく押された場合
 			if (_currentReturn == _inputNumber && _prevReturnKey == 0)
 			{
 				_currentScene = SceneState::MainStage;
 				_reloadState = ReloadState::Wait;
+				_currentAmmo = _maxAmmo;// 開始時に弾薬を満タンにする
 
-				// 4方向の敵の出現状態をリセットするループ
+				// 敵の数分のループ
 				for (int i = 0; i < _directionNumber; i++)
 				{
-					_isEnemyAlive[i] = false;// 敵の出現状態をリセット
+					_isEnemyAlive[i] = false;// 敵を全て非生存状態にリセット
 				}
 
-				_enemySpawnTimer = 0;// タイマーをリセット
+				_enemySpawnTimer = 0;// 敵の出現タイマーをリセット
 			}
 
 			break;
 
 		case SceneState::MainStage:
-			StopSoundMem(_bgmHandleTitle);// タイトルBGMを停止する
+			StopSoundMem(_bgmHandleTitle);
 
-			// もしメインステージBGMが再生されていない場合
+			// もしメインステージのBGMが再生されていない場合
 			if (CheckSoundMem(_bgmHandleMainStage) == 0)
 			{
-				PlaySoundMem(_bgmHandleMainStage, DX_PLAYTYPE_LOOP, TRUE);// メインステージBGMをループ再生する
+				PlaySoundMem(_bgmHandleMainStage, DX_PLAYTYPE_LOOP, TRUE);
 			}
 
-			MV1SetPosition(_skyboxModel, _camPos);// カメラに追従させる
+			MV1SetPosition(_skyboxModel, _camPos);// スカイボックスをカメラの位置に合わせる
 
-			// 描画前の環境設定
-			SetWriteZBuffer3D(FALSE);// Zバッファ書き込みをOFF
-			SetUseLighting(FALSE);// 空間の光をOFF
+			// スカイボックスの描画設定
+			SetWriteZBuffer3D(FALSE);// スカイボックスを常に背景に描画するためにZバッファへの書き込みを無効化
+			SetUseLighting(FALSE);// スカイボックスを常に同じ明るさで描画するためにライティングを無効化
+			MV1DrawModel(_skyboxModel);// スカイボックスの描画
+			SetUseLighting(TRUE);// ライティングを再度有効化
+			SetWriteZBuffer3D(TRUE);// Zバッファへの書き込みを再度有効化
 
-			MV1DrawModel(_skyboxModel);// 描画
+			// 廃屋の描画
+			MV1SetPosition(_houseModel, VGet(0.0f, 0.0f, 0.0f));// 廃屋の位置を設定
+			MV1DrawModel(_houseModel);// 廃屋の描画
 
-			// 描画後の環境復元
-			SetUseLighting(TRUE);// 空間の光をONに戻す
-			SetWriteZBuffer3D(TRUE);// Zバッファ書き込みをONに戻す
-
-			// 座標(0, 0, 0)に家を描画
-			MV1SetPosition(_houseModel, VGet(0.0f, 0.0f, 0.0f));// モデルの位置を設定
-			MV1DrawModel(_houseModel);// モデルを描画
-
+			// UIテキスト表示
 			DrawString(_reloadButtonNaviTextPositionValue, _reloadButtonNaviTextPositionValue, "Press R to Reload", GetColor(_colorMaxValue, _colorMaxValue, _colorMaxValue));
+			DrawFormatString(_reloadButtonNaviTextPositionValue, _reloadButtonNaviTextPositionValue + 40, GetColor(_colorMaxValue, _colorMaxValue, _colorMaxValue), "AMMO: %d / %d", _currentAmmo, _maxAmmo);
 
-			_enemySpawnTimer++;// 毎フレームタイマーを増やす
+			// もし弾が尽きていて、かつリロードミニゲームが待機状態の場合
+			if (_currentAmmo == 0 && _reloadState == ReloadState::Wait)
+			{
+				DrawString(_reloadButtonNaviTextPositionValue, _reloadButtonNaviTextPositionValue + 60, "OUT OF AMMO! PRESS R!", GetColor(_colorMaxValue, 0, 0));
+			}
 
-			// もしタイマーが敵の出現間隔以上になった場合
+			_enemySpawnTimer++;// 敵の出現タイマーを進める
+
+			// もし敵の出現タイマーが出現間隔以上になった場合
 			if (_enemySpawnTimer >= _enemySpawn_Interval)
 			{
-				// まだ敵がいない「空き場所」を探す
-				int _emptySpots[4];// 空き場所のインデックスを保存する配列の変数を定義
-				int _emptyCount = 0;// 空き場所の数を数える変数を定義
+				// 敵がいないスポットを探すための変数の定義
+				int _emptySpots[4];// 敵がいないスポットのインデックスを格納する配列を参照する変数を定義
+				int _emptyCount = 0;// 敵がいないスポットの数を参照する変数を定義
 
-				// 4方向をチェックするループ
+				// 敵がいないスポットを探すループ
 				for (int i = 0; i < _directionNumber; i++)
 				{
-					// もしその場所に敵がいない場合
+					// もしそのスポットに敵がいない場合
 					if (_isEnemyAlive[i] == false)
 					{
-						_emptySpots[_emptyCount] = i;// 空き場所のインデックスを保存
-						_emptyCount++;// 空き場所の数を増やす
+						_emptySpots[_emptyCount] = i;// 敵がいないスポットのインデックスを配列に格納
+						_emptyCount++;// 敵がいないスポットの数を増やす
 					}
 				}
 
-				// もし空き場所がある場合
+				// もし敵がいないスポットがある場合
 				if (_emptyCount > 0)
 				{
-					int _spawn_Index = GetRand(_emptyCount - _subtractValue);// 0 ～ 空き数-1 の乱数を取得し参照する変数を定義
-					_isEnemyAlive[_emptySpots[_spawn_Index]] = true;// 選ばれた場所の敵を出現状態にする
+					int _spawn_Index = GetRand(_emptyCount - _subtractValue);// 敵がいないスポットの中からランダムに出現させるスポットのインデックスを取得して参照する変数を定義
+					_isEnemyAlive[_emptySpots[_spawn_Index]] = true;// ランダムに選ばれたスポットに敵を出現させる
 
-					int _randomFrequency = 21000 + (rand() % 18001);// 21000から39000の乱数を生成して参照する変数を定義
-					SetFrequencySoundMem(_randomFrequency, _screamSoundHandle);// 唸り声の周波数を設定する
-
-					PlaySoundMem(_screamSoundHandle, DX_PLAYTYPE_BACK, TRUE);// 効果音を再生する
+					int _randomFrequency = 21000 + (rand() % 18001);// 敵の唸り声の周波数をランダムに変化させるための値を参照する変数を定義
+					SetFrequencySoundMem(_randomFrequency, _screamSoundHandle);// 敵の唸り声の周波数を設定
+					PlaySoundMem(_screamSoundHandle, DX_PLAYTYPE_BACK, TRUE);
 				}
-
-				_enemySpawnTimer = 0;// タイマーをリセットして次の出現に備える
+				_enemySpawnTimer = 0;// 敵の出現タイマーをリセット
 			}
 
-			_enemyAnimTime += 0.5f;// 毎フレーム再生時間を進める
+			_enemyAnimTime += 0.5f;// 敵のアニメーションの再生時間を進める
 
-			// もしアニメーションが最後まで再生された場合
+			// もし敵のアニメーションの再生時間が総時間以上になった場合
 			if (_enemyAnimTime >= _enemyAnimTotal_Time)
 			{
-				_enemyAnimTime -= _enemyAnimTotal_Time;// 再生時間をリセットしてループさせる
+				_enemyAnimTime -= _enemyAnimTotal_Time;// 敵のアニメーションの再生時間をループさせる
 			}
 
-			MV1SetAttachAnimTime(_enemyModel, _enemyAnimAttach_Index, _enemyAnimTime);// 現在の再生時間をモデルに反映させる
+			MV1SetAttachAnimTime(_enemyModel, _enemyAnimAttach_Index, _enemyAnimTime);// 敵モデルのアニメーションの再生時間を設定
 
-			// 4方向の敵のループ
+			// 敵の数分のループ
 			for (int i = 0; i < _directionNumber; i++)
 			{
-				// もし敵が出現している場合
+				// もしそのスポットに敵が生存している場合
 				if (_isEnemyAlive[i] == true)
 				{
-					MV1SetPosition(_enemyModel, _enemyPositions[i]);// 位置を設定
-					MV1SetRotationXYZ(_enemyModel, VGet(0.0f, _enemyRotations[i], 0.0f));// プレイヤーの方を向かせる
-					MV1DrawModel(_enemyModel);// 描画
+					// 敵モデルの位置と回転を設定して描画する
+					MV1SetPosition(_enemyModel, _enemyPositions[i]);// 敵モデルの位置を設定
+					MV1SetRotationXYZ(_enemyModel, VGet(0.0f, _enemyRotations[i], 0.0f));// 敵モデルの回転を設定して常にプレイヤーを向くようにする
+					MV1DrawModel(_enemyModel);// 敵モデルの描画
 				}
 			}
 
-			DrawRotaGraph(_centerX, _centerY, _exRate, 0.0f, _aimSpriteHandle, TRUE);// 画面中央にレティクル（照準）画像を描画
+			DrawRotaGraph(_centerX, _centerY, _exRate, 0.0f, _aimSpriteHandle, TRUE);// 画面中央にレティクルを描画
 
-			// もし0〜3（正面・右・後ろ・左）すべてがtrueの場合
+			// もし、『リロード中ではない』・『残弾がある』・『スペースキーが新しく押された』に条件が合致した場合
+			if (_reloadState == ReloadState::Wait && _currentAmmo > 0 && _currentSpace == 1 && _prevSpaceKey == 0)
+			{
+				_currentAmmo--;// 弾を消費
+				PlaySoundMem(_shotSoundHandle, DX_PLAYTYPE_BACK, TRUE);// 発砲音再生
+
+				int _facingIndex = ((int)(_targetCameraAngleY / _moveCameraAngle) % _directionNumber + _directionNumber) % _directionNumber;// 現在カメラが「目標」としている方向のインデックスを計算 (0:正面, 1:右, 2:後ろ, 3:左)を参照する変数を定義
+
+				// もしカメラが向いている方向に敵が生存している場合
+				if (_isEnemyAlive[_facingIndex] == true)
+				{
+					_isEnemyAlive[_facingIndex] = false;// 敵を倒す
+
+					int _randomFrequency = 40000 + (rand() % 18001);// 敵の唸り声の周波数をランダムに変化させるための値を参照する変数を定義
+					SetFrequencySoundMem(_randomFrequency, _screamSoundHandle);// 敵の唸り声の周波数を設定
+					PlaySoundMem(_screamSoundHandle, DX_PLAYTYPE_BACK, TRUE);
+				}
+			}
+			// もし『リロード中ではない』・『残弾がない』・『スペースキーが新しく押された』に条件が合致した場合
+			else if (_reloadState == ReloadState::Wait && _currentAmmo == 0 && _currentSpace == 1 && _prevSpaceKey == 0)
+			{
+				PlaySoundMem(_nonMagazineSoundHandle, DX_PLAYTYPE_BACK, TRUE);// 弾切れの音を再生
+			}
+
+			// もし正面・右・後ろ・左の全てのスポットに敵が生存している場合
 			if (_isEnemyAlive[0] && _isEnemyAlive[((_directionNumber - _subtractValue) - _subtractValue) - _subtractValue] && _isEnemyAlive[(_directionNumber - _subtractValue) - _subtractValue] && _isEnemyAlive[_directionNumber - _subtractValue])
 			{
 				_currentScene = SceneState::GameOver;
 			}
 
-			// もし左キーを押した上で、前のフレームでは左キーが押されていなかった場合
+			// もし左キーが新しく押された場合
 			if (_currentLeft == _inputNumber && _prevLeftKey == 0)
 			{
-				_targetCameraAngleY -= _moveCameraAngle;// 「目標角度」をマイナス90度する
+				_targetCameraAngleY -= _moveCameraAngle;// カメラの「目標の角度」を左に回転させる
 			}
 
-			// もし右キーを押した上で、前のフレームでは右キーが押されていなかった場合
+			// もし右キーが新しく押された場合
 			if (_currentRight == _inputNumber && _prevRightKey == 0)
 			{
-				_targetCameraAngleY += _moveCameraAngle;// 「目標角度」をプラス90度する
+				_targetCameraAngleY += _moveCameraAngle;// カメラの「目標の角度」を右に回転させる
 			}
 
-			// もし「目標角度」が現在のカメラ角度より小さい場合
+			// もしカメラの「目標の角度」と現在の角度が等しくない場合
 			if (_cameraAngleY < _targetCameraAngleY)
 			{
-				_cameraAngleY += _moveCameraAngleSpeedValue;// カメラ角度を「目標角度」に近づけるようにプラスする
+				_cameraAngleY += _moveCameraAngleSpeedValue;// カメラの水平角度を「目標の角度」に近づける
 
-				// もしカメラ角度が「目標角度」を超えてしまった場合
+				// もしカメラの水平角度が「目標の角度」を超えてしまった場合
 				if (_cameraAngleY > _targetCameraAngleY)
 				{
-					_cameraAngleY = _targetCameraAngleY;// カメラ角度を「目標角度」に合わせる
+					_cameraAngleY = _targetCameraAngleY;// カメラの水平角度を「目標の角度」に合わせる
 				}
 			}
-			// もし「目標角度」が現在のカメラ角度より大きい場合
+			// もしカメラの「目標の角度」と現在の角度が等しくない場合
 			else if (_cameraAngleY > _targetCameraAngleY)
 			{
-				_cameraAngleY -= _moveCameraAngleSpeedValue;// カメラ角度を「目標角度」に近づけるようにマイナスする
+				_cameraAngleY -= _moveCameraAngleSpeedValue;// カメラの水平角度を「目標の角度」に近づける
 
-				// もしカメラ角度が「目標角度」を超えてしまった場合
+				// もしカメラの水平角度が「目標の角度」を超えてしまった場合
 				if (_cameraAngleY < _targetCameraAngleY)
 				{
-					_cameraAngleY = _targetCameraAngleY;// カメラ角度を「目標角度」に合わせる
+					_cameraAngleY = _targetCameraAngleY;// カメラの水平角度を「目標の角度」に合わせる
 				}
 			}
 
-			// もしタイマーが0より大きい場合
+			// もしゲームタイマーが0より大きい場合
 			if (_gameTimer > 0)
 			{
-				_gameTimer--;// 毎フレーム1ずつ減らす
+				_gameTimer--;// ゲームタイマーを減らす
 			}
 			else
 			{
-				_currentScene = SceneState::Clear;// タイマーが0になったらクリアシーンへ移行
+				_currentScene = SceneState::Clear;
 			}
 
-			DrawFormatString(_timeFormatTransformX_Value, _timeFormatTransformY_Value, GetColor(_colorMaxValue, _colorMaxValue, _colorMaxValue), "SURVIVE TIME: %d", _surviveTime);// 60で割ることで「秒」に変換して画面に表示します
+			DrawFormatString(_timeFormatTransformX_Value, _timeFormatTransformY_Value, GetColor(_colorMaxValue, _colorMaxValue, _colorMaxValue), "SURVIVE TIME: %d", _surviveTime);
 
-			// リロードミニゲームの状態に応じた処理
+			// リロードミニゲームの処理
 			switch (_reloadState)
 			{
 			case ReloadState::Wait:
 
-				// もしRキーが押された場合
-				if (CheckHitKey(KEY_INPUT_R))
+				// もし、弾が満タンでなく、かつRキーが押された場合
+				if (_currentAmmo < _maxAmmo && CheckHitKey(KEY_INPUT_R))
 				{
-					int r = rand() % _randomValue;// 0から4の乱数を生成
-					_targetKey = _candidateKeys[r];// 押すべきキーコードを設定
-					_targetKeyChar = _candidateChars[r];// 押すべきキーの文字を設定
+					int r = rand() % _randomValue;// 0から4のランダムな整数を生成して参照する変数を定義
+					_targetKey = _candidateKeys[r];// ランダムに選ばれたキーをリロードミニゲームの正解キーに設定
+					_targetKeyChar = _candidateChars[r];// ランダムに選ばれたキーの文字を参照する変数に設定
+					PlaySoundMem(_reloadGameStartSoundHandle, DX_PLAYTYPE_BACK, TRUE);// リロードミニゲーム開始の音を再生
 					_reloadState = ReloadState::Play;
 				}
 
@@ -483,7 +521,7 @@ int WINAPI WinMain(HINSTANCE _h_Instance, HINSTANCE _hPrev_Instance, LPSTR _lpst
 			case ReloadState::Play:
 				DrawFormatString(_randomButtonNaviTextPositionX_Value, _randomButtonNaviTextPositionY_Value, GetColor(_colorMaxValue, _colorMaxValue, 0), "Push [ %c ] !", _targetKeyChar);
 
-				// もし押すべきキーが押された場合
+				// もし正解キーが押された場合
 				if (CheckHitKey(_targetKey))
 				{
 					_reloadState = ReloadState::Finished;
@@ -492,30 +530,33 @@ int WINAPI WinMain(HINSTANCE _h_Instance, HINSTANCE _hPrev_Instance, LPSTR _lpst
 				break;
 
 			case ReloadState::Finished:
+				_currentAmmo = _maxAmmo;// ミニゲーム完了時に残弾数を最大までリセット
+				PlaySoundMem(_reloadSoundHandle, DX_PLAYTYPE_BACK, TRUE);// リロード成功の音を再生
 				_reloadState = ReloadState::Wait;
+
 				break;
 			}
 
 			break;
 
 		case SceneState::Clear:
-			StopSoundMem(_bgmHandleMainStage);// メインステージBGMを停止する
+			StopSoundMem(_bgmHandleMainStage);
 
-			// もしクリアシーンBGMが再生されていない場合
+			// もしクリア画面のBGMが再生されていない場合
 			if (CheckSoundMem(_bgmHandleClear) == 0)
 			{
-				PlaySoundMem(_bgmHandleClear, DX_PLAYTYPE_LOOP, TRUE);// クリアシーンBGMをループ再生する
+				PlaySoundMem(_bgmHandleClear, DX_PLAYTYPE_LOOP, TRUE);
 			}
 
-			// メインステージの情報をリセット
-			_gameTimer = _gameTimerMax;// タイマーをリセットしておく
-			_cameraAngleY = 0.0f;// カメラの角度を正面にリセット
-			_targetCameraAngleY = 0.0f;// 「目標の角度」も正面にリセット
+			_gameTimer = _gameTimerMax;// ゲームタイマーをリセット
+			_cameraAngleY = 0.0f;// カメラの水平角度をリセット
+			_targetCameraAngleY = 0.0f;// カメラの「目標の角度」をリセット
 
+			// クリアテキストとエンターキーの誘導テキストを描画
 			DrawString(_sceneNamePositionX_Value, _sceneNamePositionY_Value, "*** CLEAR ***", GetColor(0, _colorMaxValue, 0));
 			DrawString(_enterButtonNaviTextPositionX_Value, _enterButtonNaviTextPositionY_Value, "Press ENTER to Title", GetColor(_colorMaxValue, _colorMaxValue, _colorMaxValue));
 
-			// もしエンターキーが押された上で、前のフレームではエンターキーが押されていなかった場合
+			// もしエンターキーが新しく押された場合
 			if (_currentReturn == _inputNumber && _prevReturnKey == 0)
 			{
 				_currentScene = SceneState::Title;
@@ -524,23 +565,23 @@ int WINAPI WinMain(HINSTANCE _h_Instance, HINSTANCE _hPrev_Instance, LPSTR _lpst
 			break;
 
 		case SceneState::GameOver:
-			StopSoundMem(_bgmHandleMainStage);// メインステージBGMを停止する
+			StopSoundMem(_bgmHandleMainStage);
 
-			// もしゲームオーバーシーンBGMが再生されていない場合
+			// もしゲームオーバー画面のBGMが再生されていない場合
 			if (CheckSoundMem(_bgmHandleGameOver) == 0)
 			{
-				PlaySoundMem(_bgmHandleGameOver, DX_PLAYTYPE_LOOP, TRUE);// ゲームオーバーシーンBGMをループ再生する
+				PlaySoundMem(_bgmHandleGameOver, DX_PLAYTYPE_LOOP, TRUE);
 			}
 
-			// メインステージの情報をリセット
-			_gameTimer = _gameTimerMax;// タイマーをリセットしておく
-			_cameraAngleY = 0.0f;// カメラの角度を正面にリセット
-			_targetCameraAngleY = 0.0f;// 「目標の角度」も正面にリセット
+			_gameTimer = _gameTimerMax;// ゲームタイマーをリセット
+			_cameraAngleY = 0.0f;// カメラの水平角度をリセット
+			_targetCameraAngleY = 0.0f;// カメラの「目標の角度」をリセット
 
+			// ゲームオーバーテキストとエンターキーの誘導テキストを描画
 			DrawString(_sceneNamePositionX_Value, _sceneNamePositionY_Value, "*** GAME OVER ***", GetColor(_colorMaxValue, 0, 0));
 			DrawString(_enterButtonNaviTextPositionX_Value, _enterButtonNaviTextPositionY_Value, "Press ENTER to Title", GetColor(_colorMaxValue, _colorMaxValue, _colorMaxValue));
 
-			// もしエンターキーが押された上で、前のフレームではエンターキーが押されていなかった場合
+			// もしエンターキーが新しく押された場合
 			if (_currentReturn == _inputNumber && _prevReturnKey == 0)
 			{
 				_currentScene = SceneState::Title;
@@ -549,14 +590,15 @@ int WINAPI WinMain(HINSTANCE _h_Instance, HINSTANCE _hPrev_Instance, LPSTR _lpst
 			break;
 		}
 
-		// カメラ設定
-		float _radianY = _cameraAngleY * DX_PI_F / _moveCameraAngleMaxValue;// 水平角度をラジアンに変換した値を参照する変数を定義
+		// カメラの適用
+		float _radianY = _cameraAngleY * DX_PI_F / _moveCameraAngleMaxValue;// カメラの水平角度をラジアンに変換して参照する変数を定義
 		SetCameraPositionAndAngle(VGet(_cameraPositionX_Value, _cameraPositionY_Value, _cameraPositionZ_Value), 0.0f, _radianY, 0.0f);// カメラの位置と角度を設定
 
-		// 入力状態を保存（次のフレームで比較するため）
-		_prevLeftKey = _currentLeft;// 左キーの状態を保存
-		_prevRightKey = _currentRight;// 右キーの状態を保存
-		_prevReturnKey = _currentReturn;// エンターキーの状態を保存
+		// すべてのシーンで共通して毎フレーム入力を保存する
+		_prevLeftKey = _currentLeft;// 左キーの履歴保存を追加
+		_prevRightKey = _currentRight;// 左キーと右キーの履歴保存を追加
+		_prevReturnKey = _currentReturn;// エンターキーの履歴保存を追加
+		_prevSpaceKey = _currentSpace;// スペースキーの履歴保存を追加
 
 		ScreenFlip();
 	}
