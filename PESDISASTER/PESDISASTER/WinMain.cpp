@@ -1,26 +1,7 @@
 ﻿#include "DxLib.h"
+#include "Common.h"
 #include <cstdlib>
 #include <ctime>
-
-/// <summary>
-/// ゲームシーンを管理する列挙型のクラス
-/// </summary>
-enum class SceneState
-{
-	Title,
-	MainStage,
-	Clear,
-	GameOver
-};
-/// <summary>
-/// リロードミニゲームの状態を管理する列挙型のクラス
-/// </summary>
-enum class ReloadState
-{
-	Wait,
-	Play,
-	Finished
-};
 
 /// <summary>
 /// エラー番号を参照する変数
