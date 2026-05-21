@@ -106,6 +106,10 @@ bool Player::TryShoot()
 	{
 		// 残弾数を1減らす
 		_currentAmmo--;
+
+		// 発砲音再生
+		PlaySoundMem(_shotSoundHandle, DX_PLAYTYPE_BACK, TRUE);
+
 		// 発砲が成功したことを返す
 		return true;
 	}

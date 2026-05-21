@@ -12,6 +12,7 @@ class Player
 	/// ローカルの変数
 	/// </summary>
 private:
+
 	/// <summary>
 	/// リロードミニゲームの状態を参照する変数
 	/// </summary>
@@ -34,6 +35,10 @@ private:
 	/// </summary>
 	int _reloadSoundHandle = LoadSoundMem("Sounds/SE/ReloadSound.mp3");
 	/// <summary>
+	/// 銃の発砲音を読み込み参照する変数
+	/// </summary>
+	int _shotSoundHandle = LoadSoundMem("Sounds/SE/ShootSound.mp3");
+	/// <summary>
 	/// キーの候補を参照する配列の変数
 	/// </summary>
 	int _candidateKeys[5] = { KEY_INPUT_A, KEY_INPUT_B, KEY_INPUT_C, KEY_INPUT_X, KEY_INPUT_Y };
@@ -55,6 +60,7 @@ private:
 	/// グローバルの関数
 	/// </summary>
 public:
+
 	/// <summary>
 	/// プレイヤークラスのコンストラクタ
 	/// </summary>

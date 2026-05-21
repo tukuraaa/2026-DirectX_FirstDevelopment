@@ -10,6 +10,7 @@ class Input
 	/// ローカル変数
 	/// </summary>
 private:
+
 	/// <summary>
 	/// 入力の状態を保存する配列を参照する変数
 	/// </summary>
@@ -22,7 +23,9 @@ private:
 	/// <summary>
 	/// グローバル関数
 	/// </summary>
+	/// 
 public:
+
 	/// <summary>
 	/// 毎フレーム呼び出される更新関数
 	/// </summary>
@@ -49,7 +52,6 @@ public:
 		// キーが押されているかを判定
 		return _currentKeys[keyCode] != 0;
 	}
-
 	/// <summary>
 	/// 押された瞬間かを判定する関数
 	/// </summary>
