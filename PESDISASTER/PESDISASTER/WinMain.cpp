@@ -217,8 +217,8 @@ int WINAPI WinMain(_In_ HINSTANCE _h_Instance, _In_opt_ HINSTANCE _hPrev_Instanc
 		(-_enemyRotationRagianValueMax / _divisorValue) * _piValue / _enemyRotationRagianValueMax// 3:左
 	};
 
-	int _gameTimer = 3600*3;// 制限時間を参照する変数を定義
-	int _gameTimerMax = 3600*3;// 制限時間の最大値を参照する変数を定義
+	int _gameTimer = 3600 * 3;// 制限時間を参照する変数を定義
+	int _gameTimerMax = 3600 * 3;// 制限時間の最大値を参照する変数を定義
 
 	// 残弾数システムの追加変数
 	int _maxAmmo = 9;// マガジンの最大装弾数を参照する変数を定義
@@ -248,9 +248,7 @@ int WINAPI WinMain(_In_ HINSTANCE _h_Instance, _In_opt_ HINSTANCE _hPrev_Instanc
 	// SEの読み込み
 	int _screamSoundHandle = LoadSoundMem("Sounds/SE/MonsterScream.mp3");// 敵出現の唸り声を読み込み参照する変数を定義
 	int _shotSoundHandle = LoadSoundMem("Sounds/SE/ShootSound.mp3");// 銃の発砲音を読み込み参照する変数を定義
-	int _reloadSoundHandle = LoadSoundMem("Sounds/SE/ReloadSound.mp3");// リロード成功の音を読み込み参照する変数を定義
 	int _nonMagazineSoundHandle = LoadSoundMem("Sounds/SE/NonMagazineSound.mp3");// 弾切れの音を読み込み参照する変数を定義
-	int _reloadGameStartSoundHandle = LoadSoundMem("Sounds/SE/ReloadGameStartSound.mp3");// リロードミニゲーム開始の音を読み込み参照する変数を定義
 
 	int _screamVolume = 600;// 敵の唸り声のボリュームを参照する変数を定義
 	ChangeVolumeSoundMem(_screamVolume, _screamSoundHandle);// 敵の唸り声のボリュームを設定
@@ -493,7 +491,6 @@ int WINAPI WinMain(_In_ HINSTANCE _h_Instance, _In_opt_ HINSTANCE _hPrev_Instanc
 					int r = rand() % _randomValue;// 0から4のランダムな整数を生成して参照する変数を定義
 					_targetKey = _candidateKeys[r];// ランダムに選ばれたキーをリロードミニゲームの正解キーに設定
 					_targetKeyChar = _candidateChars[r];// ランダムに選ばれたキーの文字を参照する変数に設定
-					PlaySoundMem(_reloadGameStartSoundHandle, DX_PLAYTYPE_BACK, TRUE);// リロードミニゲーム開始の音を再生
 					_reloadState = ReloadState::Play;
 				}
 
@@ -512,7 +509,6 @@ int WINAPI WinMain(_In_ HINSTANCE _h_Instance, _In_opt_ HINSTANCE _hPrev_Instanc
 
 			case ReloadState::Finished:
 				_currentAmmo = _maxAmmo;// ミニゲーム完了時に残弾数を最大までリセット
-				PlaySoundMem(_reloadSoundHandle, DX_PLAYTYPE_BACK, TRUE);// リロード成功の音を再生
 				_reloadState = ReloadState::Wait;
 
 				break;
