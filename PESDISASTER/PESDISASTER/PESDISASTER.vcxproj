@@ -19,15 +19,18 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="GameScene.cpp" />
-    <ClCompile Include="Player.cpp" />
-    <ClCompile Include="WinMain.cpp" />
+    <ClCompile Include="EnemyManager.cpp" />
+    <ClCompile Include="GameSceneManager.cpp" />
+    <ClCompile Include="PlayerManager.cpp" />
+    <ClCompile Include="GameMain.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Common.h" />
-    <ClInclude Include="GameScene.h" />
-    <ClInclude Include="Input.h" />
-    <ClInclude Include="Player.h" />
+    <ClInclude Include="AudioManager.h" />
+    <ClInclude Include="StateManager.h" />
+    <ClInclude Include="EnemyManager.h" />
+    <ClInclude Include="GameSceneManager.h" />
+    <ClInclude Include="InputManager.h" />
+    <ClInclude Include="PlayerManager.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>18.0</VCProjectVersion>

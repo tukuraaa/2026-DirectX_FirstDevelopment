@@ -1,5 +1,6 @@
-#pragma once
+﻿#pragma once
 
+// --- 状態を管理する列挙型クラス ---
 /// <summary>
 /// ゲームシーンを管理する列挙型のクラス
 /// </summary>

@@ -1,16 +1,17 @@
-#pragma once
+﻿#pragma once
 #include "DxLib.h"
 
 /// <summary>
 /// 入力を管理するクラス
 /// </summary>
-class Input
+class InputManager
 {
 	/// <summary>
 	/// ローカル変数
 	/// </summary>
 private:
 
+	// --- キー入力データ ---
 	/// <summary>
 	/// 入力の状態を保存する配列を参照する変数
 	/// </summary>
@@ -26,40 +27,42 @@ private:
 	/// 
 public:
 
+	// --- 毎フレーム管理メソッド ---
 	/// <summary>
 	/// 毎フレーム呼び出される更新関数
 	/// </summary>
 	void Update()
 	{
 		// 256個のキー分のループ
-		for (int i = 0; i < 256; i++)
+		for (int _i = 0; _i < 256; _i++)
 		{
 			// 前の状態を保存
-			_prevKeys[i] = _currentKeys[i];
+			_prevKeys[_i] = _currentKeys[_i];
 		}
 
 		// 現在の入力を取得
 		GetHitKeyStateAll(_currentKeys);
 	}
 
+	// --- 入力判定管理メソッド ---
 	/// <summary>
 	/// 押されているかを判定する関数
 	/// </summary>
 	/// <param name="keyCode"></param>
 	/// <returns></returns>
-	bool IsKeyHold(int keyCode)const
+	bool IsKeyHold(int _keyCode)const
 	{
 		// キーが押されているかを判定
-		return _currentKeys[keyCode] != 0;
+		return _currentKeys[_keyCode] != 0;
 	}
 	/// <summary>
 	/// 押された瞬間かを判定する関数
 	/// </summary>
 	/// <param name="keyCode"></param>
 	/// <returns></returns>
-	bool IsKeyDown(int keyCode)const
+	bool IsKeyDown(int _keyCode)const
 	{
 		// キーが押された瞬間かを判定
-		return _currentKeys[keyCode] != 0 && _prevKeys[keyCode] == 0;
+		return _currentKeys[_keyCode] != 0 && _prevKeys[_keyCode] == 0;
 	}
 };
