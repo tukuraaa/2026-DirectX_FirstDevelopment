@@ -5,6 +5,7 @@
 #include "EnemyManager.h"
 #include "AudioManager.h"
 
+// --- クラス定義 ---
 /// <summary>
 /// ゲームシーンを管理するクラス
 /// </summary>

@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "DxLib.h"
 
+// --- クラス定義 ---
 /// <summary>
 /// 入力を管理するクラス
 /// </summary>

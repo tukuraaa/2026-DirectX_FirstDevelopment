@@ -3,6 +3,7 @@
 #include "PlayerManager.h"
 #include "AudioManager.h"
 
+// --- クラス定義 ---
 /// <summary>
 /// エネミーを管理するクラス
 /// </summary>
