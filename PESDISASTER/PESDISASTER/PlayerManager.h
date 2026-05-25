@@ -106,6 +106,20 @@ private:
 	/// カメラ水平角度の最大値を参照する変数
 	/// </summary>
 	float _moveCameraAngleMaxValue = 180.0f;
+	/// <summary>
+	/// カメラの上下角度（ピッチ）を参照する変数
+	/// </summary>
+	float _cameraAngleX;
+
+	// ---プレイヤーデータ---
+	/// <summary>
+	/// 移動速度を参照する変数
+	/// </summary>
+	float _playerSpeed;
+	/// <summary>
+	/// 壁との当たり判定用の半径（体の太さ）を参照する変数
+	/// </summary>
+	float _playerRadius;
 
 	/// <summary>
 	/// グローバル参照
