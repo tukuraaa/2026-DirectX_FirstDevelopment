@@ -210,7 +210,7 @@ public:
 	/// </summary>
 	/// <param name="_input"></param>
 	/// <param name="mapModelHandle"></param>
-	void MoveExplore(const InputManager& _input, int mapModelHandle);
+	void MoveExplore(const InputManager& _input, int _mapModelHandle);
 
 	// --- 銃系管理メソッド ---
 	/// <summary>

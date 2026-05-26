@@ -241,76 +241,115 @@ bool PlayerManager::TryShoot()
 	return false;
 }
 
-
-
-
-
-
-
-
-// 🌟 新機能：マウスによる自由視点操作
+/// <summary>
+/// マウスによる自由視点操作を管理する関数
+/// </summary>
 void PlayerManager::LookExplore()
 {
-	int width, height;
-	GetDrawScreenSize(&width, &height);
-	int centerX = width / 2;
-	int centerY = height / 2;
+	// --- マウス関連の情報を定義 ---
+	int _width, _height;
+	GetDrawScreenSize(&_width, &_height);
+	int _centerX = _width / 2;
+	int _centerY = _height / 2;
 
+	// --- マウスの座標を定義 ---
 	int mouseX, mouseY;
 	GetMousePoint(&mouseX, &mouseY);
 
-	// 画面中央からのマウス移動量を計算（感度0.002f）
-	float deltaX = (float)(mouseX - centerX) * 0.002f;
-	float deltaY = (float)(mouseY - centerY) * 0.002f;
+	// --- 画面中央からのマウス移動量を計算 ---
+	float _deltaX = (float)(mouseX - _centerX) * 0.002f;
+	float _deltaY = (float)(mouseY - _centerY) * 0.002f;
 
-	// カメラの角度に加算（Y軸は左右、X軸は上下）
-	_cameraAngleY -= deltaX; // DirectX系の座標系に合わせて反転
-	_cameraAngleX -= deltaY;
+	// --- カメラの角度に加算（Y軸は左右、X軸は上下） ---
+	_cameraAngleY -= _deltaX;
+	_cameraAngleX -= _deltaY;
 
-	// 真上や真下を見すぎないように上下の角度を制限 (-80度 〜 80度程度)
-	float limit = 80.0f * DX_PI_F / 180.0f;
-	if (_cameraAngleX > limit) _cameraAngleX = limit;
-	if (_cameraAngleX < -limit) _cameraAngleX = -limit;
+	// --- 真上や真下を見すぎないように上下の角度を制限 (-80度 〜 80度程度) ---
+	// 制限角度を定義
+	float _limit = 80.0f * DX_PI_F / 180.0f;
+	// もしカメラの回転角度が制限角度（プラス角度）より大きかった場合
+	if (_cameraAngleX > _limit)
+	{
+		// 制限角度で固定する
+		_cameraAngleX = _limit;
+	}
+	// もしカメラの回転角度が制限角度（マイナス角度）より小さかった場合
+	if (_cameraAngleX < -_limit)
+	{
+		// 制限角度で固定する
+		_cameraAngleX = -_limit;
+	}
 
 	// マウスカーソルを画面中央に強制的に戻す
-	SetMousePoint(centerX, centerY);
+	SetMousePoint(_centerX, _centerY);
 }
 
-// 🌟 新機能：WASD移動と壁貫通防止（壁ずり）
-void PlayerManager::MoveExplore(const InputManager& _input, int mapModelHandle)
+/// <summary>
+/// WASD移動と壁貫通防止（壁ずり）を管理する関数
+/// </summary>
+/// <param name="_input"></param>
+/// <param name="mapModelHandle"></param>
+void PlayerManager::MoveExplore(const InputManager& _input, int _mapModelHandle)
 {
+	// 動くための座標を定義
 	VECTOR moveVec = VGet(0.0f, 0.0f, 0.0f);
 
-	// WASDキーによる移動方向の決定
-	if (_input.IsKeyHold(KEY_INPUT_W)) moveVec.z += _playerSpeed;
-	if (_input.IsKeyHold(KEY_INPUT_S)) moveVec.z -= _playerSpeed;
-	if (_input.IsKeyHold(KEY_INPUT_A)) moveVec.x -= _playerSpeed;
-	if (_input.IsKeyHold(KEY_INPUT_D)) moveVec.x += _playerSpeed;
+	// --- WASDキーによる移動方向の決定 ---
+	// もしWキーを押している間の場合
+	if (_input.IsKeyHold(KEY_INPUT_W))
+	{
+		// Z軸のプラス方向に動く
+		moveVec.z += _playerSpeed;
+	}
+	// もしSキーを押している間の場合
+	if (_input.IsKeyHold(KEY_INPUT_S))
+	{
+		// Z軸のマイナス方向に動く
+		moveVec.z -= _playerSpeed;
+	}
+	// もしAキーを押している間の場合
+	if (_input.IsKeyHold(KEY_INPUT_A))
+	{
+		// X軸のマイナス方向に動く
+		moveVec.x -= _playerSpeed;
+	}
+	// もしDキーを押している間の場合
+		if (_input.IsKeyHold(KEY_INPUT_D))
+		{
+			// X軸のプラス方向に動く
+			moveVec.x += _playerSpeed;
+		}
 
-	// カメラの向いているY角度に合わせて移動ベクトルを回転させる（向いている方向に進む）
+	// --- カメラの向いているY角度に合わせて移動ベクトルを回転させる ---
 	MATRIX rotY = MGetRotY(_cameraAngleY);
 	VECTOR realMove = VTransform(moveVec, rotY);
 
-	// 現在の座標を取得
+	// --- 現在の座標を取得 ---
 	VECTOR currentPos = VGet(CameraPositionX_Value, _cameraPositionY_Value, CameraPositionZ_Value);
 
-	// 1. X軸の移動と当たり判定（カプセル判定）
+	// --- X軸の移動と当たり判定（カプセル判定） ---
 	VECTOR nextPosX = currentPos;
 	nextPosX.x += realMove.x;
-	MV1_COLL_RESULT_POLY hitX = MV1CollCheck_Capsule(mapModelHandle, -1, currentPos, nextPosX, _playerRadius);
-	if (hitX.HitFlag == FALSE) {
-		currentPos.x = nextPosX.x; // 当たっていなければ進む
+	MV1_COLL_RESULT_POLY hitX = MV1CollCheck_Capsule(_mapModelHandle, -1, currentPos, nextPosX, _playerRadius);
+	// もしコライダーが当たっていない場合
+	if (hitX.HitFlag == FALSE) 
+	{
+		// 進む
+		currentPos.x = nextPosX.x;
 	}
 
-	// 2. Z軸の移動と当たり判定
+	// --- Z軸の移動と当たり判定 ---
 	VECTOR nextPosZ = currentPos;
 	nextPosZ.z += realMove.z;
-	MV1_COLL_RESULT_POLY hitZ = MV1CollCheck_Capsule(mapModelHandle, -1, currentPos, nextPosZ, _playerRadius);
-	if (hitZ.HitFlag == FALSE) {
-		currentPos.z = nextPosZ.z; // 当たっていなければ進む
+	MV1_COLL_RESULT_POLY hitZ = MV1CollCheck_Capsule(_mapModelHandle, -1, currentPos, nextPosZ, _playerRadius);
+	// もしコライダーが当たっていない場合
+	if (hitZ.HitFlag == FALSE)
+	{
+		// 進む
+		currentPos.z = nextPosZ.z;
 	}
 
-	// 計算結果をメンバ変数に書き戻す
+	// --- 計算結果をメンバ変数に書き戻す ---
 	CameraPositionX_Value = currentPos.x;
 	CameraPositionZ_Value = currentPos.z;
 	CamPos = VGet(CameraPositionX_Value, _cameraPositionY_Value, CameraPositionZ_Value);
