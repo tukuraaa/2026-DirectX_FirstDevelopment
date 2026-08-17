@@ -1,0 +1,14 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "x64\\Debug\\StateManager.obj",
+            "outputs": [
+                "x64\\Debug\\StateManager.h.obj.dt.module.json",
+                "x64\\Debug\\StateManager.h.obj.dt.d.json"
+            ],
+            "requires": []
+        }
+    ]
+}

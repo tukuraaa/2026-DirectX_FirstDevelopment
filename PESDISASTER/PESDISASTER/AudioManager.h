@@ -1,7 +1,6 @@
 ﻿#pragma once
 #include "DxLib.h"
 
-// --- クラス定義 ---
 /// <summary>
 /// 音響を管理するクラス
 /// </summary>

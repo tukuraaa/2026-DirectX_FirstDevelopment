@@ -21,103 +21,64 @@ void PlayerManager::Init()
 	_cameraAngleY = 0.0f;
 	// カメラの「目標の角度」をリセット
 	TargetCameraAngleY = 0.0f;
-	// リロード状態をリセット
+
 	_reloadState = ReloadState::Wait;
-	// モードもリセット
-	_currentMode = PlayerMode::Explore;
-	// カメラの上下角度をリセット
-	_cameraAngleX = 0.0f;
-	// プレイヤーのスピードをリセット
-	_playerSpeed = 2.0f;
-	// 壁に近づける限界の距離を指定
-	_playerRadius = 10.0f;
 }
 
 /// <summary>
 /// 毎フレーム呼び出されるプレイヤーの状態を更新する関数
 /// </summary>
 /// <param name="input"></param>
-void PlayerManager::Update(const InputManager& _input, int mapModelHandle)
+void PlayerManager::Update(const InputManager& _input)
 {
-	// --- テスト ---
-	// もしTABキーを押した場合
-	if (_input.IsKeyDown(KEY_INPUT_TAB))
+	// 視点操作メソッド呼び出し
+	Look(_input);
+
+	// リロードミニゲームの状態に応じた処理
+	switch (_reloadState)
 	{
-		// もしモードが探索モードの場合
-		if (_currentMode == PlayerMode::Explore)
+	case ReloadState::Wait:
+
+		// もし、弾が満タンでなく、かつRキーが押された場合
+		if (_currentAmmo < _maxAmmo && _input.IsKeyDown(KEY_INPUT_R))
 		{
-			// バトルモードに変更
-			_currentMode = PlayerMode::Battle;
+			// ---ターゲットキーをランダムに抽選---
+			// 0から4のランダムな整数を生成して参照する変数を定義
+			int randomValue = rand() % _keyNumberRandomValue;
+			// ランダムに選ばれたキーをターゲットキーとして設定
+			_targetKey = _candidateKeys[randomValue];
+			// ランダムに選ばれたキーの文字をターゲットキーの文字として設定
+			_targetKeyChar = _candidateChars[randomValue];
+
+			_reloadState = ReloadState::Play;
+
+			// リロードミニゲーム開始の音を再生
+			_audioManager.PlaySE(_audioManager.SE_HandleReloadGameStartSound);
 		}
-		else
+
+		break;
+
+	case ReloadState::Play:
+
+		// もし正解キーが押された場合
+		if (_input.IsKeyDown(_targetKey))
 		{
-			// 探索モードに変更
-			_currentMode = PlayerMode::Explore;
+			_reloadState = ReloadState::Finished;
 		}
-	}
 
-	// もしモードが探索モードの場合
-	if (_currentMode == PlayerMode::Explore)
-	{
-		// --- 探索モード ---
+		break;
 
-		// --- 自由な移動と視点操作を呼び出す ---
-		LookExplore();
-		MoveExplore(_input, mapModelHandle);
-	}
-	else
-	{
-		// --- バトルモード ---
+	case ReloadState::Finished:
 
-		// 視点操作メソッド呼び出し
-		Look(_input);
+		// ミニゲーム完了時に残弾数を最大までリセット
+		_currentAmmo = _maxAmmo;
 
-		// リロードミニゲームの状態に応じた処理
-		switch (_reloadState)
-		{
-		case ReloadState::Wait:
+		_reloadState = ReloadState::Wait;
 
-			// もし、弾が満タンでなく、かつRキーが押された場合
-			if (_currentAmmo < _maxAmmo && _input.IsKeyDown(KEY_INPUT_R))
-			{
-				// ---ターゲットキーをランダムに抽選---
-				// 0から4のランダムな整数を生成して参照する変数を定義
-				int _r = rand() % 5;
-				// ランダムに選ばれたキーをターゲットキーとして設定
-				_targetKey = _candidateKeys[_r];
-				// ランダムに選ばれたキーの文字をターゲットキーの文字として設定
-				_targetKeyChar = _candidateChars[_r];
+		// リロード成功の音を再生
+		_audioManager.PlaySE(_audioManager.SE_HandleReloadSound);
 
-				_reloadState = ReloadState::Play;
-
-				// リロードミニゲーム開始の音を再生
-				_audioManager.PlaySE(_audioManager.SE_HandleReloadGameStartSound);
-			}
-
-			break;
-
-		case ReloadState::Play:
-
-			// もし正解キーが押された場合
-			if (_input.IsKeyDown(_targetKey))
-			{
-				_reloadState = ReloadState::Finished;
-			}
-
-			break;
-
-		case ReloadState::Finished:
-
-			// ミニゲーム完了時に残弾数を最大までリセット
-			_currentAmmo = _maxAmmo;
-
-			_reloadState = ReloadState::Wait;
-
-			// リロード成功の音を再生
-			_audioManager.PlaySE(_audioManager.SE_HandleReloadSound);
-
-			break;
-		}
+		break;
 	}
 }
 
@@ -175,9 +136,9 @@ void PlayerManager::CameraAdapt()
 {
 	// --- カメラの適用 ---
 	// カメラの水平角度をラジアンに変換して参照する変数を定義
-	float _radianY = _cameraAngleY * DX_PI_F / _moveCameraAngleMaxValue;
+	float radianY = _cameraAngleY * DX_PI_F / _moveCameraAngleMaxValue;
 	// カメラの位置と角度を設定
-	SetCameraPositionAndAngle(VGet(CameraPositionX_Value, _cameraPositionY_Value, CameraPositionZ_Value), 0.0f, _radianY, 0.0f);
+	SetCameraPositionAndAngle(VGet(CameraPositionX_Value, _cameraPositionY_Value, CameraPositionZ_Value), 0.0f, radianY, 0.0f);
 }
 
 /// <summary>
@@ -185,9 +146,6 @@ void PlayerManager::CameraAdapt()
 /// </summary>
 void PlayerManager::Draw() const
 {
-	// カメラの上下角度（_cameraAngleX）も反映させる
-	SetCameraPositionAndAngle(CamPos, _cameraAngleX, _cameraAngleY, 0.0f);
-
 	// ---リロードボタンと残弾数をUIで表示---
 	DrawString(10, 10, "Press R to Reload", GetColor(255, 255, 255));
 	DrawFormatString(10, 50, GetColor(255, 255, 255), "AMMO: %d / %d", _currentAmmo, _maxAmmo);
@@ -239,118 +197,4 @@ bool PlayerManager::TryShoot()
 
 	// 発砲できない場合はfalseを返す
 	return false;
-}
-
-/// <summary>
-/// マウスによる自由視点操作を管理する関数
-/// </summary>
-void PlayerManager::LookExplore()
-{
-	// --- マウス関連の情報を定義 ---
-	int _width, _height;
-	GetDrawScreenSize(&_width, &_height);
-	int _centerX = _width / 2;
-	int _centerY = _height / 2;
-
-	// --- マウスの座標を定義 ---
-	int mouseX, mouseY;
-	GetMousePoint(&mouseX, &mouseY);
-
-	// --- 画面中央からのマウス移動量を計算 ---
-	float _deltaX = (float)(mouseX - _centerX) * 0.002f;
-	float _deltaY = (float)(mouseY - _centerY) * 0.002f;
-
-	// --- カメラの角度に加算（Y軸は左右、X軸は上下） ---
-	_cameraAngleY -= _deltaX;
-	_cameraAngleX -= _deltaY;
-
-	// --- 真上や真下を見すぎないように上下の角度を制限 (-80度 〜 80度程度) ---
-	// 制限角度を定義
-	float _limit = 80.0f * DX_PI_F / 180.0f;
-	// もしカメラの回転角度が制限角度（プラス角度）より大きかった場合
-	if (_cameraAngleX > _limit)
-	{
-		// 制限角度で固定する
-		_cameraAngleX = _limit;
-	}
-	// もしカメラの回転角度が制限角度（マイナス角度）より小さかった場合
-	if (_cameraAngleX < -_limit)
-	{
-		// 制限角度で固定する
-		_cameraAngleX = -_limit;
-	}
-
-	// マウスカーソルを画面中央に強制的に戻す
-	SetMousePoint(_centerX, _centerY);
-}
-
-/// <summary>
-/// WASD移動と壁貫通防止（壁ずり）を管理する関数
-/// </summary>
-/// <param name="_input"></param>
-/// <param name="mapModelHandle"></param>
-void PlayerManager::MoveExplore(const InputManager& _input, int _mapModelHandle)
-{
-	// 動くための座標を定義
-	VECTOR moveVec = VGet(0.0f, 0.0f, 0.0f);
-
-	// --- WASDキーによる移動方向の決定 ---
-	// もしWキーを押している間の場合
-	if (_input.IsKeyHold(KEY_INPUT_W))
-	{
-		// Z軸のプラス方向に動く
-		moveVec.z += _playerSpeed;
-	}
-	// もしSキーを押している間の場合
-	if (_input.IsKeyHold(KEY_INPUT_S))
-	{
-		// Z軸のマイナス方向に動く
-		moveVec.z -= _playerSpeed;
-	}
-	// もしAキーを押している間の場合
-	if (_input.IsKeyHold(KEY_INPUT_A))
-	{
-		// X軸のマイナス方向に動く
-		moveVec.x -= _playerSpeed;
-	}
-	// もしDキーを押している間の場合
-		if (_input.IsKeyHold(KEY_INPUT_D))
-		{
-			// X軸のプラス方向に動く
-			moveVec.x += _playerSpeed;
-		}
-
-	// --- カメラの向いているY角度に合わせて移動ベクトルを回転させる ---
-	MATRIX rotY = MGetRotY(_cameraAngleY);
-	VECTOR realMove = VTransform(moveVec, rotY);
-
-	// --- 現在の座標を取得 ---
-	VECTOR currentPos = VGet(CameraPositionX_Value, _cameraPositionY_Value, CameraPositionZ_Value);
-
-	// --- X軸の移動と当たり判定（カプセル判定） ---
-	VECTOR nextPosX = currentPos;
-	nextPosX.x += realMove.x;
-	MV1_COLL_RESULT_POLY hitX = MV1CollCheck_Capsule(_mapModelHandle, -1, currentPos, nextPosX, _playerRadius);
-	// もしコライダーが当たっていない場合
-	if (hitX.HitFlag == FALSE) 
-	{
-		// 進む
-		currentPos.x = nextPosX.x;
-	}
-
-	// --- Z軸の移動と当たり判定 ---
-	VECTOR nextPosZ = currentPos;
-	nextPosZ.z += realMove.z;
-	MV1_COLL_RESULT_POLY hitZ = MV1CollCheck_Capsule(_mapModelHandle, -1, currentPos, nextPosZ, _playerRadius);
-	// もしコライダーが当たっていない場合
-	if (hitZ.HitFlag == FALSE)
-	{
-		// 進む
-		currentPos.z = nextPosZ.z;
-	}
-
-	// --- 計算結果をメンバ変数に書き戻す ---
-	CameraPositionX_Value = currentPos.x;
-	CameraPositionZ_Value = currentPos.z;
-	CamPos = VGet(CameraPositionX_Value, _cameraPositionY_Value, CameraPositionZ_Value);
 }

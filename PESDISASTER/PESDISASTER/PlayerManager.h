@@ -4,17 +4,6 @@
 #include "InputManager.h"
 #include "AudioManager.h"
 
-// --- 列挙型クラス定義 ---
-/// <summary>
-/// プレイヤーのモードを管理する列挙型のクラス
-/// </summary>
-enum class PlayerMode
-{
-	Explore, // 探索モード（自由移動・自由視点）
-	Battle   // バトルモード（固定位置・4方向視点）
-};
-
-// --- クラス定義 ---
 /// <summary>
 /// プレイヤーの状態を管理するクラス
 /// </summary>
@@ -34,10 +23,6 @@ private:
 	/// 音響の状態を参照する変数
 	/// </summary>
 	AudioManager _audioManager;
-	/// <summary>
-	/// プレイヤーモードの列挙型を参照する変数
-	/// </summary>
-	PlayerMode _currentMode;
 
 	// --- 残弾データ ---
 	/// <summary>
@@ -74,6 +59,12 @@ private:
 
 	// --- キーデータ ---
 	/// <summary>
+	/// ランダムにキー候補を出す母数を参照する変数
+	/// </summary>
+	int _keyNumberRandomValue = 5;
+
+	// --- キーデータ ---
+	/// <summary>
 	/// ターゲットのキーの文字を参照する変数
 	/// </summary>
 	char _targetKeyChar;
@@ -106,20 +97,6 @@ private:
 	/// カメラ水平角度の最大値を参照する変数
 	/// </summary>
 	float _moveCameraAngleMaxValue = 180.0f;
-	/// <summary>
-	/// カメラの上下角度（ピッチ）を参照する変数
-	/// </summary>
-	float _cameraAngleX;
-
-	// ---プレイヤーデータ---
-	/// <summary>
-	/// 移動速度を参照する変数
-	/// </summary>
-	float _playerSpeed;
-	/// <summary>
-	/// 壁との当たり判定用の半径（体の太さ）を参照する変数
-	/// </summary>
-	float _playerRadius;
 
 	/// <summary>
 	/// グローバル参照
@@ -177,15 +154,13 @@ public:
 	/// <summary>
 	/// 毎フレーム呼び出されるプレイヤーの状態を更新する関数
 	/// </summary>
-	/// <param name="_input"></param>
-	/// <param name="_mapModelHandle"></param>
-	void Update(const InputManager& _input, int _mapModelHandle);
+	/// <param name="input"></param>
+	void Update(const InputManager& _input);
 
-	// --- プレイヤー操作管理メソッド ---
+	// ---プレイヤー操作管理メソッド---
 	/// <summary>
 	/// プレイヤーの視点操作を行う関数
 	/// </summary>
-	/// <param name="_input"></param>
 	void Look(const InputManager& _input);
 
 	// --- 描画管理メソッド ---
@@ -199,18 +174,6 @@ public:
 	/// カメラを適応する関数
 	/// </summary>
 	void CameraAdapt();
-
-	// --- 探索モード専用の処理メソッド ---
-	/// <summary>
-	/// 視点操作の管理を行う関数
-	/// </summary>
-	void LookExplore();
-	/// <summary>
-	/// 移動操作の管理を行う関数
-	/// </summary>
-	/// <param name="_input"></param>
-	/// <param name="mapModelHandle"></param>
-	void MoveExplore(const InputManager& _input, int _mapModelHandle);
 
 	// --- 銃系管理メソッド ---
 	/// <summary>
