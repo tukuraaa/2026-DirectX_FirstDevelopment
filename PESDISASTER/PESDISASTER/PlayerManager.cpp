@@ -44,11 +44,11 @@ void PlayerManager::Update(const InputManager& _input)
 		{
 			// ---ターゲットキーをランダムに抽選---
 			// 0から4のランダムな整数を生成して参照する変数を定義
-			int _r = rand() % 5;
+			int randomValue = rand() % _keyNumberRandomValue;
 			// ランダムに選ばれたキーをターゲットキーとして設定
-			_targetKey = _candidateKeys[_r];
+			_targetKey = _candidateKeys[randomValue];
 			// ランダムに選ばれたキーの文字をターゲットキーの文字として設定
-			_targetKeyChar = _candidateChars[_r];
+			_targetKeyChar = _candidateChars[randomValue];
 
 			_reloadState = ReloadState::Play;
 
@@ -136,9 +136,9 @@ void PlayerManager::CameraAdapt()
 {
 	// --- カメラの適用 ---
 	// カメラの水平角度をラジアンに変換して参照する変数を定義
-	float _radianY = _cameraAngleY * DX_PI_F / _moveCameraAngleMaxValue;
+	float radianY = _cameraAngleY * DX_PI_F / _moveCameraAngleMaxValue;
 	// カメラの位置と角度を設定
-	SetCameraPositionAndAngle(VGet(CameraPositionX_Value, _cameraPositionY_Value, CameraPositionZ_Value), 0.0f, _radianY, 0.0f);
+	SetCameraPositionAndAngle(VGet(CameraPositionX_Value, _cameraPositionY_Value, CameraPositionZ_Value), 0.0f, radianY, 0.0f);
 }
 
 /// <summary>

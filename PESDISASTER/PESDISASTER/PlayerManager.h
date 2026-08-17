@@ -59,6 +59,12 @@ private:
 
 	// --- キーデータ ---
 	/// <summary>
+	/// ランダムにキー候補を出す母数を参照する変数
+	/// </summary>
+	int _keyNumberRandomValue = 5;
+
+	// --- キーデータ ---
+	/// <summary>
 	/// ターゲットのキーの文字を参照する変数
 	/// </summary>
 	char _targetKeyChar;
