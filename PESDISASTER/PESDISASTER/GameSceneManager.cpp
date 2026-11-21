@@ -153,9 +153,8 @@ void GameSceneManager::Draw() const
 	{
 	case SceneState::Title:
 
-		// --- タイトルテキストとエンターキーの誘導テキストを描画 ---
-		DrawString(200, 200, "--- PESDISASTER ---", GetColor(255, 0, 0));
-		DrawString(220, 280, "Press ENTER to Start", GetColor(255, 255, 255));
+		// 画面中央にタイトルを描画
+		DrawRotaGraph(320, 240, 0.7f, 0.0f, _titleSpriteHandle, TRUE);
 
 		break;
 

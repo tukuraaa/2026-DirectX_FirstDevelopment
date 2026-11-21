@@ -81,6 +81,12 @@ private:
 	/// </summary>
 	float _skyBoxAngleZ_MagnificationValue = 1.0f;
 
+	// --- 画像データ ---
+	/// <summary>
+	/// タイトル画像を読み込み参照する変数
+	/// </summary>
+	int _titleSpriteHandle = LoadGraph("Sprites//TitleSprite.png");
+
 	/// <summary>
 	/// グローバル参照
 	/// </summary>
