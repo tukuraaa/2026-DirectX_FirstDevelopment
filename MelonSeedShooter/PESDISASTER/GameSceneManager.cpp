@@ -261,6 +261,9 @@ void GameSceneManager::DrawTitle() const
 
 	// 画面中央にタイトルを描画
 	DrawRotaGraph(_screenW / 2, _screenH / 2, _scale, 0.0f, _titleSpriteHandle, TRUE);
+
+	// 見出しとエンターキーの誘導テキストを描画
+	DrawString(570, 612, "ENTERでタイトルへ", GetColor(255, 255, 255));
 }
 
 /// <summary>
@@ -412,5 +415,5 @@ void GameSceneManager::DrawResult(bool _isClear) const
 	}
 
 	// 見出しとエンターキーの誘導テキストを描画
-	DrawString(180, 280, "ENTERでタイトルへ", GetColor(255, 255, 255));
+	DrawString(570, 612, "ENTERでタイトルへ", GetColor(255, 255, 255));
 }
