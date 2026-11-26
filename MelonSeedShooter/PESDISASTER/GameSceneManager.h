@@ -29,18 +29,18 @@ private:
 	/// </summary>
 	EnemyManager _enemyManager;
 	/// <summary>
-	/// 音響の状態を参照する変数
+	/// 音響の状態を参照する変数(全クラスで共有する唯一のインスタンス)
 	/// </summary>
 	AudioManager& _audioManager = AudioManager::Instance();
 
 	// --- ゲームタイマーデータ ---
-		// --- ゲームタイマーデータ ---
 	/// <summary>
-	/// ゲームの制限時間を参照する定数(先に宣言する)
+	/// ゲームの制限時間(フレーム数)を参照する定数
+	/// ※ _gameTimer より先に宣言すること(初期化の順番が宣言順で決まるため)
 	/// </summary>
 	static constexpr int _gameTimerMax = 3600 * 3;
 	/// <summary>
-	/// 制限時間を参照する変数
+	/// 残りの制限時間(フレーム数)を参照する変数
 	/// </summary>
 	int _gameTimer = _gameTimerMax;
 	/// <summary>
@@ -52,56 +52,42 @@ private:
 	/// </summary>
 	int _timeFormatTransformY_Value = 30;
 
-	// --- 3Dモデルデータ ---
-	/// <summary>
-	/// スイカモデルを読み込み参照する変数
-	/// </summary>
-	int _waterMelonModel = MV1LoadModel("Models/StageObjectModel/WaterMelon.mv1");
-	/// <summary>
-	/// スカイボックスモデルを読み込み参照する変数
-	/// </summary>
-	int _skyboxModel = MV1LoadModel("Models/SkyboxModel/Skybox.mv1");
-
-	// --- 廃屋データ ---	
-	/// <summary>
-	/// 廃屋モデルの大きさを参照する変数
-	/// </summary>
-	float _waterMelonScaleValue = 1.0f;
-
-	// --- スカイボックスデータ ---
-/// <summary>
-/// スカイボックスの倍率を参照する変数(起動時にモデルの大きさから自動計算する)
-/// </summary>
-	float _skyBoxScale = 100.0f;
-	/// <summary>
-	/// スカイボックスの一辺の長さを参照する変数
-	/// </summary>
-	float _skyBoxSize = 2000.0f;
-	/// <summary>
-	/// スカイボックスモデルの中心座標(等倍時)を参照する変数
-	/// </summary>
-	VECTOR _skyBoxCenter = VGet(0.0f, 0.0f, 0.0f);
-	/// <summary>
-	/// スカイボックスを明るくする加算ブレンドの強さ(0〜255)を参照する変数
-	/// </summary>
-	int _skyBoxBoostValue = 60;
-
 	// --- スカイシリンダーデータ ---
-/// <summary>
-/// 空のテクスチャを読み込み参照する変数(パスは実際の置き場所に合わせる)
-/// </summary>
-	int _skyTextureHandle = LoadGraph("Sprites/SkyboxFairy.png");
-
 	/// <summary>
-	/// スカイシリンダーを描画する関数
+	/// 空のテクスチャのハンドルを参照する変数(読み込み失敗時は-1)
 	/// </summary>
-	void DrawSkyCylinder() const;
+	int _skyTextureHandle = -1;
+	/// <summary>
+	/// 円筒の円周の分割数を参照する定数
+	/// </summary>
+	static constexpr int _skySegments = 64;
+	/// <summary>
+	/// 円筒の半径を参照する定数
+	/// </summary>
+	static constexpr float _skyRadius = 1000.0f;
+	/// <summary>
+	/// 円筒の高さの半分を参照する定数(大きいほど絵が縦に伸びる)
+	/// </summary>
+	static constexpr float _skyHalfHeight = 700.0f;
+	/// <summary>
+	/// 絵を円周方向にずらす量(0.0〜1.0)を参照する定数
+	/// ※ 1.0 / _skySegments の倍数にすると、絵の中心と継ぎ目が頂点に揃って綺麗に見える
+	/// </summary>
+	static constexpr float _skyPhase = 0.25f;
+	/// <summary>
+	/// 空を明るく持ち上げる加算ブレンドの強さ(0〜255)を参照する定数
+	/// </summary>
+	static constexpr int _skyBoostValue = 60;
 
 	// --- ライティングデータ ---
 	/// <summary>
 	/// カメラの向きに追従する補助光のハンドルを参照する変数
 	/// </summary>
 	int _fillLightHandle = -1;
+	/// <summary>
+	/// 補助光を斜め下に傾ける量を参照する定数
+	/// </summary>
+	static constexpr float _fillLightTiltValue = 0.3f;
 
 	// --- 画像データ ---
 	/// <summary>
@@ -118,26 +104,48 @@ private:
 	int _gameClearSpriteHandle = LoadGraph("Sprites/GameClearSprite.png");
 
 	// --- 初期化補助メソッド ---
+	/// <summary>
+	/// 空のテクスチャを読み込む関数
+	/// </summary>
+	void LoadSkyTexture();
+	/// <summary>
+	/// 明るい雰囲気のライティングを設定する関数
+	/// </summary>
 	void SetupLighting();
-	void SetupSkybox();
+
+	// --- 更新補助メソッド ---
+	/// <summary>
+	/// タイトルシーンの更新を行う関数
+	/// </summary>
+	void UpdateTitle(const InputManager& _input);
+	/// <summary>
+	/// メインステージシーンの更新を行う関数
+	/// </summary>
+	void UpdateMainStage(const InputManager& _input);
+	/// <summary>
+	/// クリア・ゲームオーバーシーン共通の更新を行う関数
+	/// </summary>
+	/// <param name="_bgmHandle">流すBGMのハンドル</param>
+	void UpdateResult(const InputManager& _input, int _bgmHandle);
 
 	// --- 描画補助メソッド ---
+	/// <summary>
+	/// タイトルシーンを描画する関数
+	/// </summary>
 	void DrawTitle() const;
+	/// <summary>
+	/// メインステージシーンを描画する関数
+	/// </summary>
 	void DrawMainStage() const;
-	void DrawSkybox() const;
+	/// <summary>
+	/// スカイシリンダー(カメラを囲む円筒の空)を描画する関数
+	/// </summary>
+	void DrawSkyCylinder() const;
+	/// <summary>
+	/// クリア・ゲームオーバーシーン共通のテキストを描画する関数
+	/// </summary>
+	/// <param name="_isClear">クリアかどうか</param>
 	void DrawResult(bool _isClear) const;
-	void DrawSkyboxDebug() const;// 確認用(解決したら削除)
-
-	int _color;
-
-	/// <summary>
-	/// タイトルシーンにあるテキストのX軸表示位置を参照する変数
-	/// </summary>
-	int _titleFormatTransformX_Value = 640;
-	/// <summary>
-	/// タイトルシーンにあるテキストのY軸表示位置を参照する変数
-	/// </summary>
-	int _titleFormatTransformY_Value = 480;
 
 	/// <summary>
 	/// グローバル参照
@@ -160,7 +168,7 @@ public:
 	/// <summary>
 	/// 毎フレーム呼び出されるゲームシーンの状態を更新する関数
 	/// </summary>
-	/// <param name="input"></param>
+	/// <param name="_input">入力管理クラス</param>
 	void Update(const InputManager& _input);
 
 	// --- 描画管理メソッド ---
