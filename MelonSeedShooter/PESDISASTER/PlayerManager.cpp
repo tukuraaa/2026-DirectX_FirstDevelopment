@@ -150,20 +150,22 @@ void PlayerManager::CameraAdapt()
 void PlayerManager::Draw() const
 {
 	// ---リロードボタンと残弾数をUIで表示---
-	DrawString(10, 10, "Rキーでリロード", GetColor(255, 255, 255));
-	DrawFormatString(10, 50, GetColor(255, 255, 255), "種数: %d / %d", _currentAmmo, _maxAmmo);
+	DrawString(10, 150, "・←→キーで視点操作", GetColor(0, 0, 0));
+	DrawString(10, 170, "・SPACEキーで射撃", GetColor(0, 0, 0));
+	DrawString(10, 190, "・Rキーでリロード", GetColor(0, 0, 0));
+	DrawFormatString(10, 60, GetColor(0, 0, 0), "種数: %d / %d", _currentAmmo, _maxAmmo);
 
 	// もし弾が尽きていて、かつリロードミニゲームが待機状態の場合
 	if (_currentAmmo == 0 && _reloadState == ReloadState::Wait)
 	{
-		DrawString(10, 70, "種切れだ！Rでリロードしよう！", GetColor(255, 0, 0));
+		DrawString(10, 90, "種切れだ！Rでリロードしよう！", GetColor(255, 0, 0));
 	}
 
 	// もしリロードミニゲームの状態がPlayの場合
 	if (_reloadState == ReloadState::Play)
 	{
 		// ランダムに表示されるボタンの誘導テキストを描画
-		DrawFormatString(640, 240, GetColor(255, 255, 0), "[ %c ]キーを押せ！", _targetKeyChar);
+		DrawFormatString(570, 240, GetColor(255, 0, 0), "[ %c ]キーを押せ！", _targetKeyChar);
 	}
 
 	// 画面中央にレティクルを描画

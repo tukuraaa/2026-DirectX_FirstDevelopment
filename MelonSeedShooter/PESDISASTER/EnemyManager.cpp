@@ -1,73 +1,81 @@
 ﻿#include "EnemyManager.h"
 #include "ModelUtil.h"
 #include "DxLib.h"
+#include <cstdlib>
+
+// ============================================================
+// 初期化
+// ============================================================
 
 /// <summary>
 /// エネミークラスのコンストラクタ
 /// </summary>
 EnemyManager::EnemyManager()
 {
-	// モデルのロードとアニメーションの紐づけは起動時に1回だけ行う
+	// --- モデルの読み込みと設定(起動時に1回だけ行う) ---
 	_enemyModel = MV1LoadModel("Models/EnemyModel/Sparrow_Animations.mv1");
-	LiftModelAmbient(_enemyModel, 0.9f);
+	// 敵モデルの大きさを設定
+	MV1SetScale(_enemyModel, VGet(_enemyModel_ScaleValue, _enemyModel_ScaleValue, _enemyModel_ScaleValue));
+	// 敵モデルが環境光をしっかり受けるようにする
+	LiftModelAmbient(_enemyModel, _enemyAmbientValue);
 
-	_enemyAnimAttach_Index = MV1AttachAnim(_enemyModel, 6, -1, FALSE);
+	// --- アニメーションの紐づけ ---
+	_enemyAnimAttach_Index = MV1AttachAnim(_enemyModel, _enemyAnimNumber, -1, FALSE);
 	_enemyAnimTotal_Time = MV1GetAttachAnimTotalTime(_enemyModel, _enemyAnimAttach_Index);
 }
 
 /// <summary>
-/// エネミーの初期化を行う関数
+/// エネミーの状態をリセットする関数
 /// </summary>
+/// <param name="_playerManager">プレイヤー管理クラス</param>
 void EnemyManager::Init(const PlayerManager& _playerManager)
 {
-	// --- 基本データの初期化 ---
 	// 敵の出現タイマーをリセット
 	_enemySpawnTimer = 0;
-	// 敵の出現間隔をリセット
-	_enemySpawn_Interval = 300;
-	// 出現方向の数をリセット
-	_encountDirectionNumber = 4;
 	// 敵モデルのアニメーションの再生時間をリセット
 	_enemyAnimTime = 0.0f;
-	// 敵モデルの大きさをリセット
-	_enemyModel_ScaleValue = 0.9f;
-
-	// --- 敵とプレイヤーの距離をリセット ---
-	_enemyDistanceX = 150.0f;
-	_enemyDistanceY = 170.0f;
-	_enemyDistanceZ = 150.0f;
 
 	// 敵の数分のループ
-	for (int i = 0; i < _encountDirectionNumber; i++)
+	for (int _i = 0; _i < _encountDirectionNumber; _i++)
 	{
 		// 敵を全て非生存状態にリセット
-		_isEnemyAlive[i] = false;
+		_isEnemyAlive[_i] = false;
 	}
 
-	// 敵モデルの大きさを設定
-	MV1SetScale(_enemyModel, VGet(_enemyModel_ScaleValue, _enemyModel_ScaleValue, _enemyModel_ScaleValue));
-
-	// --- 本物のプレイヤーの位置を基準に、敵の4方向の位置を計算 ---
-	_enemyPositions[0] = VGet(0.0f + _playerManager.CameraPositionX_Value, _enemyDistanceY, _enemyDistanceZ + _playerManager.CameraPositionZ_Value); // 正面
-	_enemyPositions[1] = VGet(_enemyDistanceX + _playerManager.CameraPositionX_Value, _enemyDistanceY, 0.0f + _playerManager.CameraPositionZ_Value); // 右
-	_enemyPositions[2] = VGet(0.0f + _playerManager.CameraPositionX_Value, _enemyDistanceY, -_enemyDistanceZ + _playerManager.CameraPositionZ_Value); // 後ろ
-	_enemyPositions[3] = VGet(-_enemyDistanceX + _playerManager.CameraPositionX_Value, _enemyDistanceY, 0.0f + _playerManager.CameraPositionZ_Value); // 左
-
-	// --- 回転の設定 ---
-	_enemyRotations[0] = 0.0f;
-	_enemyRotations[1] = (180.0f / 2) * DX_PI_F / 180.0f;
-	_enemyRotations[2] = 180.0f * DX_PI_F / 180.0f;
-	_enemyRotations[3] = (-180.0f / 2) * DX_PI_F / 180.0f;
-
-	// 敵の唸り声のボリュームを設定
-	_audioManager.ChangeVolume(_audioManager.ScreamVolume, _audioManager.SE_HandleScreamSound);
+	// 敵の出現位置と向きを計算
+	SetupSpawnSpots(_playerManager);
 }
 
 /// <summary>
-/// 毎フレーム呼び出されるゲームシーンの状態を更新する関数
+/// プレイヤーの位置を基準に、敵の4方向の位置と向きを計算する関数
 /// </summary>
-/// <param name="input"></param>
-void EnemyManager::Update(const PlayerManager& _playerManager)
+void EnemyManager::SetupSpawnSpots(const PlayerManager& _playerManager)
+{
+	// 基準となるプレイヤー(カメラ)の位置
+	const float _centerX = _playerManager.CameraPositionX_Value;
+	const float _centerZ = _playerManager.CameraPositionZ_Value;
+
+	// --- 4方向の位置 ---
+	_enemyPositions[0] = VGet(_centerX, _enemyDistanceY, _centerZ + _enemyDistanceZ); // 正面
+	_enemyPositions[1] = VGet(_centerX + _enemyDistanceX, _enemyDistanceY, _centerZ); // 右
+	_enemyPositions[2] = VGet(_centerX, _enemyDistanceY, _centerZ - _enemyDistanceZ); // 後ろ
+	_enemyPositions[3] = VGet(_centerX - _enemyDistanceX, _enemyDistanceY, _centerZ); // 左
+
+	// --- 常にプレイヤーを向くためのY軸回転角度 ---
+	_enemyRotations[0] = 0.0f;                // 正面
+	_enemyRotations[1] = DX_PI_F / 2.0f;      // 右
+	_enemyRotations[2] = DX_PI_F;             // 後ろ
+	_enemyRotations[3] = -DX_PI_F / 2.0f;     // 左
+}
+
+// ============================================================
+// 更新
+// ============================================================
+
+/// <summary>
+/// 毎フレーム呼び出されるエネミーの状態を更新する関数
+/// </summary>
+void EnemyManager::Update(const PlayerManager&)
 {
 	// 敵の出現タイマーを進める
 	_enemySpawnTimer++;
@@ -75,43 +83,56 @@ void EnemyManager::Update(const PlayerManager& _playerManager)
 	// もし敵の出現タイマーが出現間隔以上になった場合
 	if (_enemySpawnTimer >= _enemySpawn_Interval)
 	{
-		// --- 敵がいないスポットを探すための変数の定義 ---
-		// 敵がいないスポットのインデックスを格納する配列を参照する変数を定義
-		int _emptySpots[4];
-		// 敵がいないスポットの数を参照する変数を定義
-		int _emptyCount = 0;
-
-		// 敵がいないスポットを探すループ
-		for (int _i = 0; _i < _encountDirectionNumber; _i++)
-		{
-			// もしそのスポットに敵がいない場合
-			if (_isEnemyAlive[_i] == false)
-			{
-				// 敵がいないスポットのインデックスを配列に格納
-				_emptySpots[_emptyCount] = _i;
-				// 敵がいないスポットの数を増やす
-				_emptyCount++;
-			}
-		}
-
-		// もし敵がいないスポットがある場合
-		if (_emptyCount > 0)
-		{
-			// 敵がいないスポットの中からランダムに出現させるスポットのインデックスを取得して参照する変数を定義
-			int _spawn_Index = GetRand(_emptyCount - 1);
-			// ランダムに選ばれたスポットに敵を出現させる
-			_isEnemyAlive[_emptySpots[_spawn_Index]] = true;
-
-			// 敵の唸り声の周波数をランダムに変化させながら再生
-			_audioManager.PlayRandoｍSound(_audioManager.RandomFrequencyEncountScream, _audioManager.SE_HandleScreamSound);
-		}
+		SpawnEnemy();
 
 		// 敵の出現タイマーをリセット
 		_enemySpawnTimer = 0;
 	}
 
+	UpdateAnimation();
+}
+
+/// <summary>
+/// 敵がいないスポットの中からランダムに1か所選んで敵を出現させ、唸り声を再生する関数
+/// </summary>
+void EnemyManager::SpawnEnemy()
+{
+	// --- 敵がいないスポットを集める ---
+	int _emptySpots[_encountDirectionNumber];
+	int _emptyCount = 0;
+
+	// 敵の数分のループ
+	for (int _i = 0; _i < _encountDirectionNumber; _i++)
+	{
+		// もしそのスポットに敵がいない場合
+		if (_isEnemyAlive[_i] == false)
+		{
+			_emptySpots[_emptyCount] = _i;
+			_emptyCount++;
+		}
+	}
+
+	// もし敵がいないスポットがない場合
+	if (_emptyCount == 0)
+	{
+		return;
+	}
+
+	// 敵がいないスポットの中からランダムに選んで敵を出現させる
+	int _spawnIndex = rand() % _emptyCount;
+	_isEnemyAlive[_emptySpots[_spawnIndex]] = true;
+
+	// 出現するたびに周波数をランダムに変えて、唸り声を再生する
+	_audioManager.PlayRandomPitchSE(_audioManager.SE_HandleScreamSound, _audioManager.ScreamFrequencyMin, _audioManager.ScreamFrequencyMax);
+}
+
+/// <summary>
+/// 敵モデルのアニメーションを進める関数
+/// </summary>
+void EnemyManager::UpdateAnimation()
+{
 	// 敵のアニメーションの再生時間を進める
-	_enemyAnimTime += 0.5f;
+	_enemyAnimTime += _enemyAnimSpeed;
 
 	// もし敵のアニメーションの再生時間が総時間以上になった場合
 	if (_enemyAnimTime >= _enemyAnimTotal_Time)
@@ -124,13 +145,28 @@ void EnemyManager::Update(const PlayerManager& _playerManager)
 	MV1SetAttachAnimTime(_enemyModel, _enemyAnimAttach_Index, _enemyAnimTime);
 }
 
+// ============================================================
+// 撃退・ゲームオーバー判定
+// ============================================================
+
 /// <summary>
-/// エネミーを撃退する関数
+/// カメラが「目標」としている方向のインデックスを取得する関数
 /// </summary>
+/// <returns>0:正面, 1:右, 2:後ろ, 3:左</returns>
+int EnemyManager::GetFacingIndex(const PlayerManager& _playerManager) const
+{
+	// 目標の角度を1回の回転量で割って方向の番号にし、負の値も0〜3に収める
+	int _step = (int)(_playerManager.TargetCameraAngleY / _playerManager.MoveCameraAngle);
+	return (_step % _encountDirectionNumber + _encountDirectionNumber) % _encountDirectionNumber;
+}
+
+/// <summary>
+/// カメラが向いている方向のエネミーを撃退する関数
+/// </summary>
+/// <param name="_playerManager">プレイヤー管理クラス</param>
 void EnemyManager::Defeat(const PlayerManager& _playerManager)
 {
-	// 現在カメラが「目標」としている方向のインデックスを計算 (0:正面, 1:右, 2:後ろ, 3:左)
-	int _facingIndex = ((int)(_playerManager.TargetCameraAngleY / _playerManager.MoveCameraAngle) % _encountDirectionNumber + _encountDirectionNumber) % _encountDirectionNumber;
+	int _facingIndex = GetFacingIndex(_playerManager);
 
 	// もしカメラが向いている方向に敵が生存している場合
 	if (_isEnemyAlive[_facingIndex] == true)
@@ -138,42 +174,53 @@ void EnemyManager::Defeat(const PlayerManager& _playerManager)
 		// 敵を倒す
 		_isEnemyAlive[_facingIndex] = false;
 
-		// 敵の唸り声の周波数をランダムに変化させながら再生
-		_audioManager.PlayRandoｍSound(_audioManager.RandomFrequencyDefeatScream, _audioManager.SE_HandleScreamSound);
+		// 被弾音を再生
+		_audioManager.PlaySE(_audioManager.SE_HandleDamageSound);
 	}
-}
-
-bool EnemyManager::GameOverRule()
-{
-	// もし正面・右・後ろ・左の全てのスポットに敵が生存している場合
-	if (_isEnemyAlive[0] && _isEnemyAlive[((_encountDirectionNumber - 1) - 1) - 1] && _isEnemyAlive[(_encountDirectionNumber - 1) - 1] && _isEnemyAlive[_encountDirectionNumber - 1])
-	{
-		// 成功を返す
-		return true;
-	}
-
-	// 失敗を返す
-	return false;
 }
 
 /// <summary>
-/// エネミー関係のUIを描画する関数
+/// プレイヤーをゲームオーバーにさせる条件(全方向に敵がいる)を満たしているかを返す関数
+/// </summary>
+/// <returns>満たしている場合はtrue</returns>
+bool EnemyManager::GameOverRule() const
+{
+	// 敵の数分のループ
+	for (int _i = 0; _i < _encountDirectionNumber; _i++)
+	{
+		// もし敵がいないスポットが1か所でもある場合
+		if (_isEnemyAlive[_i] == false)
+		{
+			return false;
+		}
+	}
+
+	// 正面・右・後ろ・左の全てのスポットに敵が生存している
+	return true;
+}
+
+// ============================================================
+// 描画
+// ============================================================
+
+/// <summary>
+/// 描画を行う関数
 /// </summary>
 void EnemyManager::Draw() const
 {
 	// 敵の数分のループ
 	for (int _i = 0; _i < _encountDirectionNumber; _i++)
 	{
-		// もしそのスポットに敵が生存している場合
-		if (_isEnemyAlive[_i] == true)
+		// もしそのスポットに敵がいない場合は次へ
+		if (_isEnemyAlive[_i] == false)
 		{
-			// --- 敵モデルの位置と回転を設定して描画する ---
-			// 敵モデルの位置を設定
-			MV1SetPosition(_enemyModel, _enemyPositions[_i]);
-			// 敵モデルの回転を設定して常にプレイヤーを向くようにする
-			MV1SetRotationXYZ(_enemyModel, VGet(0.0f, _enemyRotations[_i], 0.0f));
-			// 敵モデルの描画
-			MV1DrawModel(_enemyModel);
+			continue;
 		}
+
+		// --- 敵モデルの位置と回転を設定して描画する ---
+		MV1SetPosition(_enemyModel, _enemyPositions[_i]);
+		// 常にプレイヤーを向くように回転させる
+		MV1SetRotationXYZ(_enemyModel, VGet(0.0f, _enemyRotations[_i], 0.0f));
+		MV1DrawModel(_enemyModel);
 	}
 }

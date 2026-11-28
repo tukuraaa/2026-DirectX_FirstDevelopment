@@ -1,5 +1,4 @@
 ﻿#include "GameSceneManager.h"
-#include "ModelUtil.h"
 #include "DxLib.h"
 #include <cmath>
 
@@ -284,7 +283,9 @@ void GameSceneManager::DrawMainStage() const
 
 	// --- UI描画(3Dより手前に描く) ---
 	// ゲームタイマー
-	DrawFormatString(_timeFormatTransformX_Value, _timeFormatTransformY_Value, GetColor(255, 255, 255), "防衛残り時間：%d", _gameTimer / 60);
+	DrawFormatString(_timeFormatTransformX_Value, _timeFormatTransformY_Value, GetColor(0, 0, 0), "防衛残り時間：%d", _gameTimer / 60);
+	// ゲームルール
+	DrawFormatString(10, 10, GetColor(0, 0, 0), "ゲームルール：スズメに囲まれるな！追い返して耐え続けろ！");
 
 	// プレイヤー情報
 	_playerManager.Draw();
@@ -415,5 +416,5 @@ void GameSceneManager::DrawResult(bool _isClear) const
 	}
 
 	// 見出しとエンターキーの誘導テキストを描画
-	DrawString(570, 612, "ENTERでタイトルへ", GetColor(255, 255, 255));
+	DrawString(570, 622, "ENTERでタイトルへ", GetColor(255, 255, 255));
 }

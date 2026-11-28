@@ -263,7 +263,12 @@
             "c:\\ripof\\2026-directx_firstdevelopment\\melonseedshooter\\pesdisaster\\playermanager.h",
             "c:\\ripof\\2026-directx_firstdevelopment\\melonseedshooter\\pesdisaster\\statemanager.h",
             "c:\\ripof\\2026-directx_firstdevelopment\\melonseedshooter\\pesdisaster\\inputmanager.h",
-            "c:\\ripof\\2026-directx_firstdevelopment\\melonseedshooter\\pesdisaster\\audiomanager.h"
+            "c:\\ripof\\2026-directx_firstdevelopment\\melonseedshooter\\pesdisaster\\audiomanager.h",
+            "c:\\program files\\microsoft visual studio\\18\\community\\vc\\tools\\msvc\\14.51.36231\\include\\cstdlib",
+            "c:\\program files\\microsoft visual studio\\18\\community\\vc\\tools\\msvc\\14.51.36231\\include\\yvals_core.h",
+            "c:\\program files\\microsoft visual studio\\18\\community\\vc\\tools\\msvc\\14.51.36231\\include\\xkeycheck.h",
+            "c:\\program files (x86)\\windows kits\\10\\include\\10.0.26100.0\\ucrt\\math.h",
+            "c:\\program files (x86)\\windows kits\\10\\include\\10.0.26100.0\\ucrt\\corecrt_math.h"
         ],
         "ImportedModules": [],
         "ImportedHeaderUnits": []

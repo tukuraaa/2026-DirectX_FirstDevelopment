@@ -50,7 +50,7 @@ private:
 	/// <summary>
 	/// タイム表示の位置Yを参照する変数
 	/// </summary>
-	int _timeFormatTransformY_Value = 30;
+	int _timeFormatTransformY_Value = 40;
 
 	// --- スカイシリンダーデータ ---
 	/// <summary>
